@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
+import { ImageViewer } from '../ui/ImageViewer';
 import { ArrowLeft, Plus, Trash2, Save, Wrench, ClipboardList, Box, History, FileText, Copy, Camera } from 'lucide-react';
 
 interface EquipmentDetailProps {
@@ -94,6 +95,7 @@ const TabButton: React.FC<{ active: boolean; onClick: () => void; children: Reac
 const GeneralTab = ({ formData, setFormData, handleInfoChange }: { formData: Equipo, setFormData: React.Dispatch<React.SetStateAction<Equipo>>, handleInfoChange: any }) => {
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [newPhotoUrl, setNewPhotoUrl] = useState("");
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   const addCharacteristic = () => {
     const newChar: Caracteristica = { Caracteristica: "", Descripcion: "" };
@@ -167,10 +169,11 @@ const GeneralTab = ({ formData, setFormData, handleInfoChange }: { formData: Equ
             <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-2">
                     {(formData.Fotografias || []).map((photo, idx) => (
-                        <div key={idx} className="relative group aspect-square bg-zinc-100 dark:bg-zinc-800 rounded-md overflow-hidden border border-zinc-200 dark:border-zinc-700">
-                            {photo ? <img src={photo} alt="Equipo" className="w-full h-full object-cover" /> : <div className="flex items-center justify-center h-full text-zinc-400">Sin Imagen</div>}
+                        <div key={idx} className="relative group aspect-square bg-zinc-100 dark:bg-zinc-800 rounded-md overflow-hidden border border-zinc-200 dark:border-zinc-700 cursor-zoom-in" onClick={() => setZoomedImage(photo)}>
+                            {photo ? <img src={photo} alt="Equipo" className="w-full h-full object-cover transition-transform hover:scale-105" /> : <div className="flex items-center justify-center h-full text-zinc-400">Sin Imagen</div>}
                             <button 
-                                onClick={() => {
+                                onClick={(e) => {
+                                    e.stopPropagation();
                                     const newPhotos = [...(formData.Fotografias || [])];
                                     newPhotos.splice(idx, 1);
                                     setFormData({...formData, Fotografias: newPhotos});
@@ -215,6 +218,12 @@ const GeneralTab = ({ formData, setFormData, handleInfoChange }: { formData: Equ
             />
         </div>
       </Modal>
+
+      <ImageViewer 
+          isOpen={!!zoomedImage} 
+          onClose={() => setZoomedImage(null)} 
+          src={zoomedImage || ""} 
+      />
     </div>
   );
 };
@@ -525,6 +534,7 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
 const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpdate: (u: HojaDeVidaEquipo) => void, onBack: () => void }) => {
     const [maintenancePhotoModal, setMaintenancePhotoModal] = useState<{ logIdx: number; isOpen: boolean } | null>(null);
     const [newMaintPhotoUrl, setNewMaintPhotoUrl] = useState("");
+    const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
     const handleInfoChange = (key: string, value: string) => {
         onUpdate({ ...unit, infoEquipo: { ...(unit.infoEquipo || {}), [key]: value } as any });
@@ -626,8 +636,8 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
                                 </div>
                                 <div className="flex gap-2 overflow-x-auto pb-2">
                                     {(log.Fotografias || []).map((photo, photoIdx) => (
-                                        <div key={photoIdx} className="w-16 h-16 rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden shrink-0">
-                                            <img src={photo} alt="evidencia" className="w-full h-full object-cover"/>
+                                        <div key={photoIdx} className="w-16 h-16 rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden shrink-0 cursor-zoom-in" onClick={() => setZoomedImage(photo)}>
+                                            <img src={photo} alt="evidencia" className="w-full h-full object-cover transition-transform hover:scale-110"/>
                                         </div>
                                     ))}
                                 </div>
@@ -656,10 +666,10 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
                      
                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[50vh] overflow-y-auto">
                         {maintenancePhotoModal && (unit.mantenimientos || [])[maintenancePhotoModal.logIdx]?.Fotografias?.map((photo, pIdx) => (
-                             <div key={pIdx} className="relative group aspect-square bg-zinc-100 dark:bg-zinc-800 rounded overflow-hidden">
-                                 <img src={photo} alt="evidencia" className="w-full h-full object-cover"/>
+                             <div key={pIdx} className="relative group aspect-square bg-zinc-100 dark:bg-zinc-800 rounded overflow-hidden cursor-zoom-in" onClick={() => setZoomedImage(photo)}>
+                                 <img src={photo} alt="evidencia" className="w-full h-full object-cover transition-transform hover:scale-105"/>
                                  <button 
-                                    onClick={() => removePhotoFromLog(maintenancePhotoModal.logIdx, pIdx)}
+                                    onClick={(e) => { e.stopPropagation(); removePhotoFromLog(maintenancePhotoModal.logIdx, pIdx); }}
                                     className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                  >
                                     <Trash2 size={10}/>
@@ -672,6 +682,12 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
                      </div>
                 </div>
             </Modal>
+
+            <ImageViewer 
+                isOpen={!!zoomedImage} 
+                onClose={() => setZoomedImage(null)} 
+                src={zoomedImage || ""} 
+            />
         </div>
     );
 };

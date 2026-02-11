@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
+import { ImageViewer } from '../ui/ImageViewer';
 import { ArrowLeft, Plus, Trash2, Save, Cpu, HardDrive, Users, UserCheck, UserCog, GraduationCap, Copy, ArrowRightLeft, Image as ImageIcon } from 'lucide-react';
 import { EquipmentDetail } from './EquipmentDetail';
 import { SoftwareDetail } from './SoftwareDetail';
@@ -32,6 +33,9 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
   // Photo Modals State
   const [labPhotoModalOpen, setLabPhotoModalOpen] = useState(false);
   const [newLabPhotoUrl, setNewLabPhotoUrl] = useState("");
+  
+  // Image Viewer State
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
 
   // Move Equipment State
@@ -483,11 +487,11 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-3 gap-2">
                             {getLabPhotos().map((photo, idx) => (
-                                <div key={idx} className="relative group aspect-square bg-zinc-100 dark:bg-zinc-800 rounded-md overflow-hidden border border-zinc-200 dark:border-zinc-700">
-                                    <img src={photo} alt="Lab" className="w-full h-full object-cover" />
+                                <div key={idx} className="relative group aspect-square bg-zinc-100 dark:bg-zinc-800 rounded-md overflow-hidden border border-zinc-200 dark:border-zinc-700 cursor-zoom-in" onClick={() => setZoomedImage(photo)}>
+                                    <img src={photo} alt="Lab" className="w-full h-full object-cover transition-transform hover:scale-105" />
                                     {isEditing && (
                                         <button 
-                                            onClick={() => removeLabPhoto(idx)}
+                                            onClick={(e) => { e.stopPropagation(); removeLabPhoto(idx); }}
                                             className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
                                             <Trash2 size={12}/>
@@ -762,6 +766,13 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
              <p className="text-xs text-zinc-500">Se moverá la entrada completa del software y todas sus licencias.</p>
          </div>
       </Modal>
+
+      {/* Lab Photo Viewer */}
+      <ImageViewer 
+          isOpen={!!zoomedImage} 
+          onClose={() => setZoomedImage(null)} 
+          src={zoomedImage || ""} 
+      />
     </div>
   );
 };

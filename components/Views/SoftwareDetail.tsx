@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
+import { ImageViewer } from '../ui/ImageViewer';
 import { ArrowLeft, Plus, Trash2, Save, HardDrive, Image as ImageIcon } from 'lucide-react';
 
 interface SoftwareDetailProps {
@@ -16,6 +17,7 @@ export const SoftwareDetail: React.FC<SoftwareDetailProps> = ({ software, onUpda
   const [formData, setFormData] = useState<Software>(software);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [newPhotoUrl, setNewPhotoUrl] = useState("");
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   const saveChanges = () => {
     onUpdate(formData);
@@ -104,10 +106,10 @@ export const SoftwareDetail: React.FC<SoftwareDetailProps> = ({ software, onUpda
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-3">
                         {(formData.Fotografias || []).map((photo, idx) => (
-                            <div key={idx} className="relative group aspect-video bg-zinc-100 dark:bg-zinc-800 rounded-md overflow-hidden border border-zinc-200 dark:border-zinc-700">
-                                {photo ? <img src={photo} alt="Software" className="w-full h-full object-cover" /> : <div className="flex items-center justify-center h-full text-zinc-400">Sin Imagen</div>}
+                            <div key={idx} className="relative group aspect-video bg-zinc-100 dark:bg-zinc-800 rounded-md overflow-hidden border border-zinc-200 dark:border-zinc-700 cursor-zoom-in" onClick={() => setZoomedImage(photo)}>
+                                {photo ? <img src={photo} alt="Software" className="w-full h-full object-cover transition-transform hover:scale-105" /> : <div className="flex items-center justify-center h-full text-zinc-400">Sin Imagen</div>}
                                 <button 
-                                    onClick={() => removePhoto(idx)}
+                                    onClick={(e) => { e.stopPropagation(); removePhoto(idx); }}
                                     className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                     <Trash2 size={12}/>
@@ -149,6 +151,12 @@ export const SoftwareDetail: React.FC<SoftwareDetailProps> = ({ software, onUpda
             />
         </div>
       </Modal>
+
+      <ImageViewer 
+          isOpen={!!zoomedImage} 
+          onClose={() => setZoomedImage(null)} 
+          src={zoomedImage || ""} 
+      />
     </div>
   );
 };
