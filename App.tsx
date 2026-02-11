@@ -158,6 +158,55 @@ const App: React.FC = () => {
       }
   };
   
+  const handleMoveEquipment = (targetLabIndex: number, equipmentIndex: number, unitIndices?: number[]) => {
+      if (selectedLabIndex === null) return;
+      
+      setData(prev => {
+          // Deep clone to avoid mutation
+          const newData = JSON.parse(JSON.stringify(prev));
+          const sourceLab = newData.labs[selectedLabIndex];
+          const targetLab = newData.labs[targetLabIndex];
+          
+          if (!sourceLab || !targetLab || !sourceLab.equipos[equipmentIndex]) return prev;
+
+          const equipment = sourceLab.equipos[equipmentIndex];
+
+          if (!unitIndices || unitIndices.length === 0) {
+              // Move ENTIRE equipment
+              // 1. Remove from source
+              sourceLab.equipos.splice(equipmentIndex, 1);
+              
+              // 2. Add to target
+              if (!targetLab.equipos) targetLab.equipos = [];
+              targetLab.equipos.push(equipment);
+          } else {
+              // Move SPECIFIC units
+              // 1. Create a copy of the equipment for target lab (initially with no units)
+              const newEquipmentForTarget = JSON.parse(JSON.stringify(equipment));
+              newEquipmentForTarget.HojasDeVidaEquipos = [];
+              // Reset quantities mostly for clarity, though strict JSON structure might require keeping them
+              newEquipmentForTarget["Nº DE EQUIPOS"] = unitIndices.length.toString(); 
+
+              // 2. Separate units
+              const unitsToMove = (equipment.HojasDeVidaEquipos || []).filter((_: any, i: number) => unitIndices.includes(i));
+              const unitsToKeep = (equipment.HojasDeVidaEquipos || []).filter((_: any, i: number) => !unitIndices.includes(i));
+
+              // 3. Update source equipment
+              equipment.HojasDeVidaEquipos = unitsToKeep;
+              equipment["Nº DE EQUIPOS"] = unitsToKeep.length.toString();
+
+              // 4. Update target equipment
+              newEquipmentForTarget.HojasDeVidaEquipos = unitsToMove;
+              
+              // 5. Add to target lab
+              if (!targetLab.equipos) targetLab.equipos = [];
+              targetLab.equipos.push(newEquipmentForTarget);
+          }
+          
+          return newData;
+      });
+  };
+  
   const handleUpdateSettings = (newData: UniversityData) => {
     setData(newData);
     // Optional: Add toast notification here
@@ -240,8 +289,11 @@ const App: React.FC = () => {
                 {currentView === 'LAB_DETAIL' && selectedLabIndex !== null && (data.labs || [])[selectedLabIndex] && (
                     <LabDetail 
                         lab={(data.labs || [])[selectedLabIndex]} 
+                        allLabs={data.labs || []}
+                        currentLabIndex={selectedLabIndex}
                         onBack={() => setCurrentView('LABS_LIST')}
                         onUpdate={handleUpdateLab}
+                        onMoveEquipment={handleMoveEquipment}
                     />
                 )}
 

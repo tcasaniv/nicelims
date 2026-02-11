@@ -4,18 +4,21 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
-import { ArrowLeft, Plus, Trash2, Save, Cpu, HardDrive, Users, UserCheck, UserCog, GraduationCap, Copy } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Cpu, HardDrive, Users, UserCheck, UserCog, GraduationCap, Copy, ArrowRightLeft } from 'lucide-react';
 import { EquipmentDetail } from './EquipmentDetail';
 
 interface LabDetailProps {
   lab: Lab;
+  allLabs?: Lab[];
+  currentLabIndex?: number;
   onBack: () => void;
   onUpdate: (updatedLab: Lab) => void;
+  onMoveEquipment?: (targetLabIndex: number, equipmentIndex: number, unitIndices?: number[]) => void;
 }
 
 type Tab = 'INFO' | 'EQUIPOS' | 'SOFTWARE';
 
-export const LabDetail: React.FC<LabDetailProps> = ({ lab, onBack, onUpdate }) => {
+export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIndex, onBack, onUpdate, onMoveEquipment }) => {
   const [activeTab, setActiveTab] = useState<Tab>('INFO');
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Lab>(lab);
@@ -24,6 +27,20 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, onBack, onUpdate }) =
   const [selectedEquipmentIndex, setSelectedEquipmentIndex] = useState<number | null>(null);
   const [editingSoftwareIndex, setEditingSoftwareIndex] = useState<number | null>(null);
   const [softwareForm, setSoftwareForm] = useState<Software | null>(null);
+
+  // Move Equipment State
+  const [moveModalState, setMoveModalState] = useState<{
+      isOpen: boolean;
+      equipmentIndex: number | null;
+  }>({ isOpen: false, equipmentIndex: null });
+  const [moveTargetLabIndex, setMoveTargetLabIndex] = useState<string>("");
+  const [moveMode, setMoveMode] = useState<'ALL' | 'PARTIAL'>('ALL');
+  const [selectedMoveUnits, setSelectedMoveUnits] = useState<number[]>([]);
+
+  // Update formData when prop lab changes (important for after moving equipment)
+  React.useEffect(() => {
+    setFormData(lab);
+  }, [lab]);
 
   // --- GENERAL INFO LOGIC ---
   const handleChange = (section: keyof Lab['infoAmbiente'], value: string) => {
@@ -191,6 +208,36 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, onBack, onUpdate }) =
     const newData = { ...formData, equipos: newEquipos };
     setFormData(newData);
     onUpdate(newData);
+  };
+  
+  const openMoveModal = (idx: number, e: React.MouseEvent) => {
+      e.stopPropagation();
+      setMoveModalState({ isOpen: true, equipmentIndex: idx });
+      setMoveTargetLabIndex("");
+      setMoveMode('ALL');
+      setSelectedMoveUnits([]);
+  };
+
+  const executeMove = () => {
+      if (moveTargetLabIndex === "" || moveModalState.equipmentIndex === null || !onMoveEquipment) return;
+      
+      const targetIdx = parseInt(moveTargetLabIndex);
+      const eqIdx = moveModalState.equipmentIndex;
+      
+      if (moveMode === 'ALL') {
+          onMoveEquipment(targetIdx, eqIdx);
+      } else {
+          onMoveEquipment(targetIdx, eqIdx, selectedMoveUnits);
+      }
+      
+      setMoveModalState({ isOpen: false, equipmentIndex: null });
+  };
+  
+  const toggleMoveUnit = (unitIdx: number) => {
+      setSelectedMoveUnits(prev => {
+          if (prev.includes(unitIdx)) return prev.filter(i => i !== unitIdx);
+          return [...prev, unitIdx];
+      });
   };
 
   // --- SOFTWARE LOGIC ---
@@ -441,6 +488,9 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, onBack, onUpdate }) =
                            </div>
                         </div>
                         <div className="flex gap-2">
+                             <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={(e) => openMoveModal(idx, e)} title="Mover Equipo">
+                                <ArrowRightLeft size={16} />
+                            </Button>
                              <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => duplicateEquipment(idx, e)} title="Duplicar">
                                 <Copy size={16} />
                             </Button>
@@ -517,6 +567,82 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, onBack, onUpdate }) =
                  <Input textarea label="Comentarios" value={softwareForm["COMENTARIOS"]} onChange={e => setSoftwareForm({...softwareForm, "COMENTARIOS": e.target.value})} />
              </div>
          )}
+      </Modal>
+      
+      {/* Move Equipment Modal */}
+      <Modal
+        isOpen={moveModalState.isOpen}
+        onClose={() => setMoveModalState({ isOpen: false, equipmentIndex: null })}
+        title="Mover Equipo a Otro Laboratorio"
+        footer={<>
+            <Button variant="ghost" onClick={() => setMoveModalState({ isOpen: false, equipmentIndex: null })}>Cancelar</Button>
+            <Button onClick={executeMove} disabled={!moveTargetLabIndex || (moveMode === 'PARTIAL' && selectedMoveUnits.length === 0)}>Mover</Button>
+        </>}
+      >
+         <div className="space-y-4">
+             <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Seleccione el laboratorio de destino:</label>
+                <select 
+                    className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                    value={moveTargetLabIndex}
+                    onChange={(e) => setMoveTargetLabIndex(e.target.value)}
+                >
+                    <option value="">-- Seleccionar Laboratorio --</option>
+                    {allLabs && allLabs.map((l, idx) => (
+                        idx !== currentLabIndex ? (
+                            <option key={idx} value={idx}>
+                                {l.infoAmbiente?.["CÓDIGO DE LABORATORIO O TALLER"]} - {l.infoAmbiente?.["NOMBRE DEL LABORATORIO O TALLER"]}
+                            </option>
+                        ) : null
+                    ))}
+                </select>
+             </div>
+             
+             <div className="border-t border-zinc-200 dark:border-zinc-700 pt-4">
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Modo de traslado:</label>
+                <div className="flex gap-4">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input 
+                            type="radio" 
+                            name="moveMode" 
+                            checked={moveMode === 'ALL'} 
+                            onChange={() => setMoveMode('ALL')} 
+                        />
+                        Mover todo el equipo (y todas sus unidades)
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input 
+                            type="radio" 
+                            name="moveMode" 
+                            checked={moveMode === 'PARTIAL'} 
+                            onChange={() => setMoveMode('PARTIAL')} 
+                        />
+                        Mover solo algunas unidades
+                    </label>
+                </div>
+             </div>
+             
+             {moveMode === 'PARTIAL' && moveModalState.equipmentIndex !== null && (
+                 <div className="bg-zinc-50 dark:bg-zinc-800 p-3 rounded-md border border-zinc-200 dark:border-zinc-700 max-h-60 overflow-y-auto">
+                     <p className="text-xs text-zinc-500 mb-2">Seleccione las unidades a mover:</p>
+                     {(formData.equipos?.[moveModalState.equipmentIndex]?.HojasDeVidaEquipos || []).length === 0 ? (
+                         <p className="text-sm text-red-500">Este equipo no tiene unidades inventariadas.</p>
+                     ) : (
+                         (formData.equipos?.[moveModalState.equipmentIndex]?.HojasDeVidaEquipos || []).map((unit, idx) => (
+                             <label key={idx} className="flex items-center gap-2 text-sm py-1 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 px-1 rounded">
+                                 <input 
+                                    type="checkbox" 
+                                    checked={selectedMoveUnits.includes(idx)}
+                                    onChange={() => toggleMoveUnit(idx)}
+                                 />
+                                 <span className="font-mono text-zinc-600 dark:text-zinc-400">{unit.infoEquipo?.["Codigo Inventario Equipo"]}</span>
+                                 <span>{unit.infoEquipo?.Ubicación ? `- ${unit.infoEquipo.Ubicación}` : ''}</span>
+                             </label>
+                         ))
+                     )}
+                 </div>
+             )}
+         </div>
       </Modal>
     </div>
   );
