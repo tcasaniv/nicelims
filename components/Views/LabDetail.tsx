@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Lab, Equipo, Software } from '../../types';
+import { Lab, Equipo, Software, PersonalInfo } from '../../types';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { Card, CardContent } from '../ui/Card';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
-import { ArrowLeft, Plus, Trash2, Save, Cpu, HardDrive } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Cpu, HardDrive, Users, UserCheck, UserCog, GraduationCap } from 'lucide-react';
 import { EquipmentDetail } from './EquipmentDetail';
 
 interface LabDetailProps {
@@ -33,6 +33,92 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, onBack, onUpdate }) =
     } as Lab));
   };
 
+  const handlePersonalChange = (
+      section: 'RESPONSABLE DEL LABORATORIO O TALLER' | 'PERSONAL ASIGNADO PARA VERIFICAR LA CBC III', 
+      field: keyof PersonalInfo, 
+      value: string
+  ) => {
+      setFormData(prev => {
+          const info = prev.infoAmbiente || {};
+          const personal = info[section] || {};
+          return {
+              ...prev,
+              infoAmbiente: {
+                  ...info,
+                  [section]: { ...personal, [field]: value }
+              }
+          } as Lab;
+      });
+  };
+
+  const addTechStaff = () => {
+      setFormData(prev => {
+          const info = prev.infoAmbiente || {};
+          const staff = info["PERSONAL TÉCNICO"] || [];
+          return {
+              ...prev,
+              infoAmbiente: { ...info, "PERSONAL TÉCNICO": [...staff, { "NOMBRE": "", "NUMERO DE CONTACTO": "" }] }
+          } as Lab;
+      });
+  };
+
+  const updateTechStaff = (index: number, field: keyof PersonalInfo, value: string) => {
+       setFormData(prev => {
+          const info = prev.infoAmbiente || {};
+          const staff = [...(info["PERSONAL TÉCNICO"] || [])];
+          staff[index] = { ...staff[index], [field]: value };
+          return {
+              ...prev,
+              infoAmbiente: { ...info, "PERSONAL TÉCNICO": staff }
+          } as Lab;
+      });
+  };
+
+  const removeTechStaff = (index: number) => {
+       setFormData(prev => {
+          const info = prev.infoAmbiente || {};
+          const staff = (info["PERSONAL TÉCNICO"] || []).filter((_, i) => i !== index);
+          return {
+              ...prev,
+              infoAmbiente: { ...info, "PERSONAL TÉCNICO": staff }
+          } as Lab;
+      });
+  };
+
+  const addProgram = () => {
+      setFormData(prev => {
+           const info = prev.infoAmbiente || {};
+           const programs = info["PROGRAMA(S) QUE UTILIZAN EL LABORATORIO O TALLER"] || [];
+           return {
+              ...prev,
+              infoAmbiente: { ...info, "PROGRAMA(S) QUE UTILIZAN EL LABORATORIO O TALLER": [...programs, ""] }
+           } as Lab;
+      });
+  };
+
+  const updateProgram = (index: number, value: string) => {
+      setFormData(prev => {
+           const info = prev.infoAmbiente || {};
+           const programs = [...(info["PROGRAMA(S) QUE UTILIZAN EL LABORATORIO O TALLER"] || [])];
+           programs[index] = value;
+           return {
+              ...prev,
+              infoAmbiente: { ...info, "PROGRAMA(S) QUE UTILIZAN EL LABORATORIO O TALLER": programs }
+           } as Lab;
+      });
+  };
+
+  const removeProgram = (index: number) => {
+      setFormData(prev => {
+           const info = prev.infoAmbiente || {};
+           const programs = (info["PROGRAMA(S) QUE UTILIZAN EL LABORATORIO O TALLER"] || []).filter((_, i) => i !== index);
+           return {
+              ...prev,
+              infoAmbiente: { ...info, "PROGRAMA(S) QUE UTILIZAN EL LABORATORIO O TALLER": programs }
+           } as Lab;
+      });
+  };
+
   const handleSave = () => {
     onUpdate(formData);
     setIsEditing(false);
@@ -43,6 +129,12 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, onBack, onUpdate }) =
     if (typeof val === 'string') return val;
     return "";
   };
+
+  const getResponsible = () => formData.infoAmbiente?.["RESPONSABLE DEL LABORATORIO O TALLER"] || { NOMBRE: "", "NUMERO DE CONTACTO": "" };
+  const getCBC = () => formData.infoAmbiente?.["PERSONAL ASIGNADO PARA VERIFICAR LA CBC III"] || { NOMBRE: "", "NUMERO DE CONTACTO": "" };
+  const getTechStaff = () => formData.infoAmbiente?.["PERSONAL TÉCNICO"] || [];
+  const getPrograms = () => formData.infoAmbiente?.["PROGRAMA(S) QUE UTILIZAN EL LABORATORIO O TALLER"] || [];
+
 
   // --- EQUIPMENT LOGIC ---
   const addMockEquipment = () => {
@@ -64,7 +156,6 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, onBack, onUpdate }) =
     const newLabs = { ...formData, equipos: [...(formData.equipos || []), newEq] };
     setFormData(newLabs);
     onUpdate(newLabs);
-    // Auto-select new equipment
     setSelectedEquipmentIndex((newLabs.equipos || []).length - 1);
   };
 
@@ -97,7 +188,7 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, onBack, onUpdate }) =
           setSoftwareForm({
               "Nº DE LICENCIAS": "1", "VERSIÓN": "", "NOMBRE DEL SOFTWARE": "", "TIPO DE LICENCIA": "", "COMENTARIOS": ""
           });
-          setEditingSoftwareIndex(null); // New mode
+          setEditingSoftwareIndex(null); 
       }
   };
 
@@ -190,25 +281,115 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, onBack, onUpdate }) =
       {/* Content */}
       <div className="pt-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
         {activeTab === 'INFO' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardContent className="space-y-4 p-6">
-                <Input label="Nombre del Laboratorio" value={getInfo("NOMBRE DEL LABORATORIO O TALLER")} onChange={(e) => handleChange("NOMBRE DEL LABORATORIO O TALLER", e.target.value)} disabled={!isEditing} />
-                <Input label="Código" value={getInfo("CÓDIGO DE LABORATORIO O TALLER")} onChange={(e) => handleChange("CÓDIGO DE LABORATORIO O TALLER", e.target.value)} disabled={!isEditing} />
-                <Input label="Referencia Ubicación" value={getInfo("REFERENCIA DE UBICACIÓN")} onChange={(e) => handleChange("REFERENCIA DE UBICACIÓN", e.target.value)} disabled={!isEditing} />
-                <Input label="Tipo" value={getInfo("TIPO DE LABORATORIO O TALLER")} onChange={(e) => handleChange("TIPO DE LABORATORIO O TALLER", e.target.value)} disabled={!isEditing} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="space-y-4 p-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <Input label="Aforo" value={getInfo("AFORO")} onChange={(e) => handleChange("AFORO", e.target.value)} disabled={!isEditing} />
-                  <Input label="Área" value={getInfo("ÁREA (m2)")} onChange={(e) => handleChange("ÁREA (m2)", e.target.value)} disabled={!isEditing} />
-                </div>
-                 <Input label="Internet (Sí/No)" value={getInfo("SERVICIO DE INTERNET (SI/NO)")} onChange={(e) => handleChange("SERVICIO DE INTERNET (SI/NO)", e.target.value)} disabled={!isEditing} />
-                <Input textarea label="Comentarios" value={getInfo("COMENTARIOS")} onChange={(e) => handleChange("COMENTARIOS", e.target.value)} disabled={!isEditing} rows={4} />
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
+            
+            {/* Columna Izquierda */}
+            <div className="space-y-6">
+                <Card>
+                  <CardHeader><CardTitle>Identificación y Ubicación</CardTitle></CardHeader>
+                  <CardContent className="space-y-4">
+                    <Input label="Nombre del Laboratorio" value={getInfo("NOMBRE DEL LABORATORIO O TALLER")} onChange={(e) => handleChange("NOMBRE DEL LABORATORIO O TALLER", e.target.value)} disabled={!isEditing} />
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input label="Código" value={getInfo("CÓDIGO DE LABORATORIO O TALLER")} onChange={(e) => handleChange("CÓDIGO DE LABORATORIO O TALLER", e.target.value)} disabled={!isEditing} />
+                        <Input label="Nro. Laboratorio" value={getInfo("NUMERO DE LABORATORIO O TALLER")} onChange={(e) => handleChange("NUMERO DE LABORATORIO O TALLER", e.target.value)} disabled={!isEditing} />
+                    </div>
+                    <Input label="Referencia Ubicación" value={getInfo("REFERENCIA DE UBICACIÓN")} onChange={(e) => handleChange("REFERENCIA DE UBICACIÓN", e.target.value)} disabled={!isEditing} />
+                    <Input label="Código Patrimonio Ambiente" value={getInfo("CODIGO PATRIMONIO AMBIENTE")} onChange={(e) => handleChange("CODIGO PATRIMONIO AMBIENTE", e.target.value)} disabled={!isEditing} />
+                    <Input label="Tipo" value={getInfo("TIPO DE LABORATORIO O TALLER")} onChange={(e) => handleChange("TIPO DE LABORATORIO O TALLER", e.target.value)} disabled={!isEditing} />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader><CardTitle>Métricas y Capacidad</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <Input label="Aforo" value={getInfo("AFORO")} onChange={(e) => handleChange("AFORO", e.target.value)} disabled={!isEditing} />
+                            <Input label="Área (m2)" value={getInfo("ÁREA (m2)")} onChange={(e) => handleChange("ÁREA (m2)", e.target.value)} disabled={!isEditing} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                             <Input label="Internet (Sí/No)" value={getInfo("SERVICIO DE INTERNET (SI/NO)")} onChange={(e) => handleChange("SERVICIO DE INTERNET (SI/NO)", e.target.value)} disabled={!isEditing} />
+                             <Input label="Cant. Programas" value={getInfo("CANTIDAD DE PROGRAMA(S) QUE UTILIZAN EL LABORATORIO O TALLER")} onChange={(e) => handleChange("CANTIDAD DE PROGRAMA(S) QUE UTILIZAN EL LABORATORIO O TALLER", e.target.value)} disabled={!isEditing} />
+                        </div>
+                    </CardContent>
+                </Card>
+                
+                 <Card>
+                    <CardHeader>
+                         <div className="flex justify-between items-center">
+                            <CardTitle className="flex items-center gap-2"><GraduationCap size={18}/> Programas que usan el ambiente</CardTitle>
+                            {isEditing && <Button size="sm" variant="secondary" onClick={addProgram}><Plus size={14}/></Button>}
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        {getPrograms().map((prog, idx) => (
+                            <div key={idx} className="flex gap-2">
+                                <Input value={prog} onChange={(e) => updateProgram(idx, e.target.value)} disabled={!isEditing} placeholder="Código Programa (ej. P13)" />
+                                {isEditing && <Button variant="ghost" className="text-red-500" onClick={() => removeProgram(idx)}><Trash2 size={16}/></Button>}
+                            </div>
+                        ))}
+                        {getPrograms().length === 0 && <p className="text-sm text-zinc-500 italic">No hay programas asignados.</p>}
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Columna Derecha */}
+            <div className="space-y-6">
+                <Card>
+                    <CardHeader><CardTitle className="flex items-center gap-2"><Users size={18}/> Responsables</CardTitle></CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-md border border-blue-100 dark:border-blue-800">
+                             <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-2"><UserCheck size={16}/> Responsable del Laboratorio</h4>
+                             <div className="space-y-2">
+                                 <Input label="Nombre" value={getResponsible().NOMBRE} onChange={(e) => handlePersonalChange('RESPONSABLE DEL LABORATORIO O TALLER', 'NOMBRE', e.target.value)} disabled={!isEditing} className="bg-white dark:bg-zinc-900" />
+                                 <Input label="Contacto" value={getResponsible()["NUMERO DE CONTACTO"]} onChange={(e) => handlePersonalChange('RESPONSABLE DEL LABORATORIO O TALLER', 'NUMERO DE CONTACTO', e.target.value)} disabled={!isEditing} className="bg-white dark:bg-zinc-900" />
+                             </div>
+                        </div>
+
+                         <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-md border border-purple-100 dark:border-purple-800">
+                             <h4 className="text-sm font-semibold text-purple-800 dark:text-purple-300 mb-2 flex items-center gap-2"><UserCog size={16}/> Verificación CBC III</h4>
+                             <div className="space-y-2">
+                                 <Input label="Nombre" value={getCBC().NOMBRE} onChange={(e) => handlePersonalChange('PERSONAL ASIGNADO PARA VERIFICAR LA CBC III', 'NOMBRE', e.target.value)} disabled={!isEditing} className="bg-white dark:bg-zinc-900" />
+                                 <Input label="Contacto" value={getCBC()["NUMERO DE CONTACTO"]} onChange={(e) => handlePersonalChange('PERSONAL ASIGNADO PARA VERIFICAR LA CBC III', 'NUMERO DE CONTACTO', e.target.value)} disabled={!isEditing} className="bg-white dark:bg-zinc-900" />
+                             </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                 <Card>
+                    <CardHeader>
+                        <div className="flex justify-between items-center">
+                            <CardTitle className="flex items-center gap-2"><Users size={18}/> Personal Técnico</CardTitle>
+                            {isEditing && <Button size="sm" variant="secondary" onClick={addTechStaff}><Plus size={14}/></Button>}
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {getTechStaff().map((staff, idx) => (
+                            <div key={idx} className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 relative group">
+                                <div className="grid grid-cols-1 gap-2">
+                                    <Input placeholder="Nombre Técnico" value={staff.NOMBRE} onChange={(e) => updateTechStaff(idx, 'NOMBRE', e.target.value)} disabled={!isEditing} className="text-sm" />
+                                    <Input placeholder="Contacto" value={staff["NUMERO DE CONTACTO"]} onChange={(e) => updateTechStaff(idx, 'NUMERO DE CONTACTO', e.target.value)} disabled={!isEditing} className="text-sm" />
+                                </div>
+                                {isEditing && (
+                                    <button 
+                                        onClick={() => removeTechStaff(idx)}
+                                        className="absolute top-2 right-2 text-zinc-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                         {getTechStaff().length === 0 && <p className="text-sm text-zinc-500 italic">No hay personal técnico asignado.</p>}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader><CardTitle>Notas Adicionales</CardTitle></CardHeader>
+                    <CardContent>
+                        <Input textarea label="Comentarios" value={getInfo("COMENTARIOS")} onChange={(e) => handleChange("COMENTARIOS", e.target.value)} disabled={!isEditing} rows={4} />
+                    </CardContent>
+                </Card>
+            </div>
           </div>
         )}
 
