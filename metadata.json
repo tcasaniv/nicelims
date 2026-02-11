@@ -1,0 +1,5 @@
+{
+  "name": "NiceLIMS",
+  "description": "Sistema de Gestión de la Información de Laboratorio (LIMS) minimalista y funcional para administración de datos, equipos y mantenimiento.",
+  "requestFramePermissions": []
+}
