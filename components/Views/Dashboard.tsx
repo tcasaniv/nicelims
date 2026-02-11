@@ -13,8 +13,29 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   const labs = data.labs || [];
   const totalLabs = labs.length;
-  const totalEquipments = labs.reduce((acc, lab) => acc + (lab.equipos?.length || 0), 0);
-  const totalSoftware = labs.reduce((acc, lab) => acc + (lab.software?.length || 0), 0);
+
+  // Calculate Unique Equipment Names (Types)
+  const uniqueEquipmentNames = new Set<string>();
+  labs.forEach(lab => {
+    (lab.equipos || []).forEach(eq => {
+      if (eq["NOMBRE DEL EQUIPO"]) {
+        uniqueEquipmentNames.add(eq["NOMBRE DEL EQUIPO"].trim().toUpperCase());
+      }
+    });
+  });
+  const totalUniqueEquipments = uniqueEquipmentNames.size;
+
+  // Calculate Unique Software Names (Types)
+  const uniqueSoftwareNames = new Set<string>();
+  labs.forEach(lab => {
+    (lab.software || []).forEach(sw => {
+      if (sw["NOMBRE DEL SOFTWARE"]) {
+        uniqueSoftwareNames.add(sw["NOMBRE DEL SOFTWARE"].trim().toUpperCase());
+      }
+    });
+  });
+  const totalUniqueSoftware = uniqueSoftwareNames.size;
+
   const totalCapacity = labs.reduce((acc, lab) => acc + parseInt(lab.infoAmbiente?.AFORO || "0", 10), 0);
 
   // Data for charts
@@ -44,13 +65,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
           icon={<Microscope className="h-4 w-4 text-blue-600" />} 
         />
         <StatsCard 
-          title="Total Equipos" 
-          value={totalEquipments} 
+          title="Tipos de Equipos" 
+          value={totalUniqueEquipments} 
+          subtitle="Nombres únicos globales"
           icon={<Cpu className="h-4 w-4 text-emerald-600" />} 
         />
         <StatsCard 
-          title="Licencias Software" 
-          value={totalSoftware} 
+          title="Tipos de Software" 
+          value={totalUniqueSoftware} 
+          subtitle="Nombres únicos globales"
           icon={<Save className="h-4 w-4 text-purple-600" />} 
         />
         <StatsCard 
@@ -112,12 +135,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   );
 };
 
-const StatsCard = ({ title, value, icon }: { title: string, value: string | number, icon: React.ReactNode }) => (
+const StatsCard = ({ title, value, icon, subtitle }: { title: string, value: string | number, icon: React.ReactNode, subtitle?: string }) => (
   <Card>
     <CardContent className="p-6 flex items-center justify-between">
       <div>
         <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{title}</p>
         <p className="text-2xl font-bold text-zinc-900 dark:text-white">{value}</p>
+        {subtitle && <p className="text-xs text-zinc-400 mt-1">{subtitle}</p>}
       </div>
       <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full">
         {icon}

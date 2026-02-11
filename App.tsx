@@ -6,9 +6,11 @@ import { Dashboard } from './components/Views/Dashboard';
 import { LabList } from './components/Views/LabList';
 import { LabDetail } from './components/Views/LabDetail';
 import { Settings as SettingsView } from './components/Views/Settings';
+import { GlobalEquipmentList } from './components/Views/GlobalEquipmentList';
+import { GlobalSoftwareList } from './components/Views/GlobalSoftwareList';
 import { Modal } from './components/ui/Modal';
 import { Button } from './components/ui/Button';
-import { LayoutDashboard, FlaskConical, Settings } from 'lucide-react';
+import { LayoutDashboard, FlaskConical, Settings, Cpu, Save } from 'lucide-react';
 
 const App: React.FC = () => {
   const [data, setData] = useState<UniversityData>(DEFAULT_DATA);
@@ -221,7 +223,7 @@ const App: React.FC = () => {
          <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-center min-w-[16rem]">
              <div className="text-xl font-bold tracking-tight text-blue-600 dark:text-blue-400">NiceLIMS</div>
          </div>
-         <nav className="flex-1 p-4 space-y-1 min-w-[16rem]">
+         <nav className="flex-1 p-4 space-y-1 min-w-[16rem] overflow-y-auto">
             <button 
                 onClick={() => navigateTo('DASHBOARD')}
                 className={`flex items-center w-full px-3 py-2 rounded-md transition-colors ${currentView === 'DASHBOARD' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
@@ -236,6 +238,30 @@ const App: React.FC = () => {
                 <FlaskConical size={20} className="mr-3 shrink-0" />
                 Laboratorios
             </button>
+            
+            <div className="pt-4 pb-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider px-3">
+                Inventario Global
+            </div>
+            
+            <button 
+                 onClick={() => navigateTo('ALL_EQUIPMENT')}
+                 className={`flex items-center w-full px-3 py-2 rounded-md transition-colors ${currentView === 'ALL_EQUIPMENT' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+            >
+                <Cpu size={20} className="mr-3 shrink-0" />
+                Equipos Globales
+            </button>
+             <button 
+                 onClick={() => navigateTo('ALL_SOFTWARE')}
+                 className={`flex items-center w-full px-3 py-2 rounded-md transition-colors ${currentView === 'ALL_SOFTWARE' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+            >
+                <Save size={20} className="mr-3 shrink-0" />
+                Software Global
+            </button>
+
+            <div className="pt-4 pb-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider px-3">
+                Sistema
+            </div>
+
             <button 
                  onClick={() => navigateTo('SETTINGS')}
                  className={`flex items-center w-full px-3 py-2 rounded-md transition-colors ${currentView === 'SETTINGS' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
@@ -295,6 +321,14 @@ const App: React.FC = () => {
                         onUpdate={handleUpdateLab}
                         onMoveEquipment={handleMoveEquipment}
                     />
+                )}
+                
+                {currentView === 'ALL_EQUIPMENT' && (
+                    <GlobalEquipmentList labs={data.labs || []} />
+                )}
+
+                {currentView === 'ALL_SOFTWARE' && (
+                    <GlobalSoftwareList labs={data.labs || []} />
                 )}
 
                 {currentView === 'SETTINGS' && (
