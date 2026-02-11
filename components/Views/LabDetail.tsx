@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
-import { ArrowLeft, Plus, Trash2, Save, Cpu, HardDrive, Users, UserCheck, UserCog, GraduationCap, Copy, ArrowRightLeft } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Cpu, HardDrive, Users, UserCheck, UserCog, GraduationCap, Copy, ArrowRightLeft, Image as ImageIcon } from 'lucide-react';
 import { EquipmentDetail } from './EquipmentDetail';
 
 interface LabDetailProps {
@@ -27,6 +27,12 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
   const [selectedEquipmentIndex, setSelectedEquipmentIndex] = useState<number | null>(null);
   const [editingSoftwareIndex, setEditingSoftwareIndex] = useState<number | null>(null);
   const [softwareForm, setSoftwareForm] = useState<Software | null>(null);
+
+  // Photo Modals State
+  const [labPhotoModalOpen, setLabPhotoModalOpen] = useState(false);
+  const [newLabPhotoUrl, setNewLabPhotoUrl] = useState("");
+  const [softwarePhotoUrl, setSoftwarePhotoUrl] = useState("");
+
 
   // Move Equipment State
   const [moveModalState, setMoveModalState] = useState<{
@@ -136,6 +142,34 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
       });
   };
 
+  // Lab Photos Logic
+  const addLabPhoto = () => {
+    if(newLabPhotoUrl.trim()) {
+        setFormData(prev => {
+            const info = prev.infoAmbiente || {};
+            const photos = info.Fotografias || [];
+            return {
+                ...prev,
+                infoAmbiente: { ...info, Fotografias: [...photos, newLabPhotoUrl.trim()] }
+            } as Lab;
+        });
+        setNewLabPhotoUrl("");
+        setLabPhotoModalOpen(false);
+    }
+  };
+
+  const removeLabPhoto = (idx: number) => {
+      setFormData(prev => {
+          const info = prev.infoAmbiente || {};
+          const photos = (info.Fotografias || []).filter((_, i) => i !== idx);
+          return {
+              ...prev,
+              infoAmbiente: { ...info, Fotografias: photos }
+          } as Lab;
+      });
+  };
+
+
   const handleSave = () => {
     onUpdate(formData);
     setIsEditing(false);
@@ -151,6 +185,7 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
   const getCBC = () => formData.infoAmbiente?.["PERSONAL ASIGNADO PARA VERIFICAR LA CBC III"] || { NOMBRE: "", "NUMERO DE CONTACTO": "" };
   const getTechStaff = () => formData.infoAmbiente?.["PERSONAL TÉCNICO"] || [];
   const getPrograms = () => formData.infoAmbiente?.["PROGRAMA(S) QUE UTILIZAN EL LABORATORIO O TALLER"] || [];
+  const getLabPhotos = () => formData.infoAmbiente?.Fotografias || [];
 
 
   // --- EQUIPMENT LOGIC ---
@@ -247,10 +282,11 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
           setEditingSoftwareIndex(idx);
       } else {
           setSoftwareForm({
-              "Nº DE LICENCIAS": "1", "VERSIÓN": "", "NOMBRE DEL SOFTWARE": "", "TIPO DE LICENCIA": "", "COMENTARIOS": ""
+              "Nº DE LICENCIAS": "1", "VERSIÓN": "", "NOMBRE DEL SOFTWARE": "", "TIPO DE LICENCIA": "", "COMENTARIOS": "", "Fotografias": []
           });
           setEditingSoftwareIndex(null); 
       }
+      setSoftwarePhotoUrl("");
   };
 
   const saveSoftware = () => {
@@ -267,6 +303,25 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
       setFormData(newData);
       onUpdate(newData);
       setSoftwareForm(null);
+  };
+
+  const addSoftwarePhoto = () => {
+      if (softwareForm && softwarePhotoUrl.trim()) {
+          setSoftwareForm({
+              ...softwareForm,
+              Fotografias: [...(softwareForm.Fotografias || []), softwarePhotoUrl.trim()]
+          });
+          setSoftwarePhotoUrl("");
+      }
+  };
+
+  const removeSoftwarePhoto = (idx: number) => {
+      if (softwareForm) {
+          setSoftwareForm({
+              ...softwareForm,
+              Fotografias: (softwareForm.Fotografias || []).filter((_, i) => i !== idx)
+          });
+      }
   };
 
   const deleteSoftware = (idx: number) => {
@@ -408,6 +463,38 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
 
             {/* Columna Derecha */}
             <div className="space-y-6">
+                 {/* Lab Photos */}
+                 <Card>
+                    <CardHeader><CardTitle className="flex items-center gap-2"><ImageIcon size={18}/> Fotografías del Laboratorio</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-3 gap-2">
+                            {getLabPhotos().map((photo, idx) => (
+                                <div key={idx} className="relative group aspect-square bg-zinc-100 dark:bg-zinc-800 rounded-md overflow-hidden border border-zinc-200 dark:border-zinc-700">
+                                    <img src={photo} alt="Lab" className="w-full h-full object-cover" />
+                                    {isEditing && (
+                                        <button 
+                                            onClick={() => removeLabPhoto(idx)}
+                                            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <Trash2 size={12}/>
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                            {isEditing && (
+                                <button 
+                                    onClick={() => setLabPhotoModalOpen(true)}
+                                    className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-blue-500 dark:hover:text-blue-400"
+                                >
+                                    <Plus size={24}/>
+                                    <span className="text-[10px] mt-1 text-center">Añadir</span>
+                                </button>
+                            )}
+                        </div>
+                         {getLabPhotos().length === 0 && !isEditing && <p className="text-sm text-zinc-500 italic">No hay fotografías.</p>}
+                    </CardContent>
+                 </Card>
+
                 <Card>
                     <CardHeader><CardTitle className="flex items-center gap-2"><Users size={18}/> Responsables</CardTitle></CardHeader>
                     <CardContent className="space-y-6">
@@ -521,8 +608,8 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
                 <Card key={idx} className="group">
                   <CardContent className="p-4 flex justify-between items-start">
                     <div className="flex gap-4 items-center">
-                      <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded flex items-center justify-center text-purple-600 dark:text-purple-300">
-                          <HardDrive size={20} />
+                      <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded flex items-center justify-center text-purple-600 dark:text-purple-300 overflow-hidden shrink-0">
+                          {sw.Fotografias?.[0] ? <img src={sw.Fotografias[0]} alt="sw" className="w-full h-full object-cover"/> : <HardDrive size={24} />}
                       </div>
                       <div>
                         <h4 className="font-bold">{sw["NOMBRE DEL SOFTWARE"] || "Software sin nombre"}</h4>
@@ -557,7 +644,7 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
          </>}
       >
          {softwareForm && (
-             <div className="space-y-4">
+             <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                  <Input label="Nombre del Software" value={softwareForm["NOMBRE DEL SOFTWARE"]} onChange={e => setSoftwareForm({...softwareForm, "NOMBRE DEL SOFTWARE": e.target.value})} />
                  <div className="grid grid-cols-2 gap-4">
                      <Input label="Versión" value={softwareForm["VERSIÓN"]} onChange={e => setSoftwareForm({...softwareForm, "VERSIÓN": e.target.value})} />
@@ -565,8 +652,55 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
                  </div>
                  <Input label="Tipo de Licencia" value={softwareForm["TIPO DE LICENCIA"]} onChange={e => setSoftwareForm({...softwareForm, "TIPO DE LICENCIA": e.target.value})} />
                  <Input textarea label="Comentarios" value={softwareForm["COMENTARIOS"]} onChange={e => setSoftwareForm({...softwareForm, "COMENTARIOS": e.target.value})} />
+                 
+                 <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4">
+                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Imágenes del Software</label>
+                     <div className="flex gap-2 mb-2">
+                         <Input 
+                            placeholder="URL de imagen..." 
+                            value={softwarePhotoUrl} 
+                            onChange={(e) => setSoftwarePhotoUrl(e.target.value)} 
+                         />
+                         <Button onClick={addSoftwarePhoto} disabled={!softwarePhotoUrl} size="sm"><Plus size={16}/></Button>
+                     </div>
+                     <div className="grid grid-cols-3 gap-2">
+                         {(softwareForm.Fotografias || []).map((photo, idx) => (
+                             <div key={idx} className="relative group aspect-square bg-zinc-100 rounded overflow-hidden">
+                                 <img src={photo} alt="soft" className="w-full h-full object-cover"/>
+                                 <button 
+                                    onClick={() => removeSoftwarePhoto(idx)}
+                                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                 >
+                                    <Trash2 size={10}/>
+                                 </button>
+                             </div>
+                         ))}
+                     </div>
+                 </div>
              </div>
          )}
+      </Modal>
+
+      {/* Lab Photo Modal */}
+      <Modal
+        isOpen={labPhotoModalOpen}
+        onClose={() => setLabPhotoModalOpen(false)}
+        title="Añadir Fotografía del Laboratorio"
+        footer={<>
+            <Button variant="ghost" onClick={() => setLabPhotoModalOpen(false)}>Cancelar</Button>
+            <Button onClick={addLabPhoto}>Añadir</Button>
+        </>}
+      >
+           <div className="space-y-4">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">Ingrese la URL de la imagen del ambiente.</p>
+            <Input 
+                label="URL de la Imagen" 
+                value={newLabPhotoUrl} 
+                onChange={(e) => setNewLabPhotoUrl(e.target.value)} 
+                placeholder="https://..." 
+                autoFocus
+            />
+        </div>
       </Modal>
       
       {/* Move Equipment Modal */}

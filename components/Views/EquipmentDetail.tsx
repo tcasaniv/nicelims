@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
-import { ArrowLeft, Plus, Trash2, Save, Wrench, ClipboardList, Box, History, FileText, Copy } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Wrench, ClipboardList, Box, History, FileText, Copy, Camera } from 'lucide-react';
 
 interface EquipmentDetailProps {
   equipment: Equipo;
@@ -455,7 +455,9 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
 
 // --- UNIT DETAIL (Nested in Life Sheets) ---
 const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpdate: (u: HojaDeVidaEquipo) => void, onBack: () => void }) => {
-    
+    const [maintenancePhotoModal, setMaintenancePhotoModal] = useState<{ logIdx: number; isOpen: boolean } | null>(null);
+    const [newMaintPhotoUrl, setNewMaintPhotoUrl] = useState("");
+
     const handleInfoChange = (key: string, value: string) => {
         onUpdate({ ...unit, infoEquipo: { ...(unit.infoEquipo || {}), [key]: value } as any });
     };
@@ -488,6 +490,27 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
         onUpdate({ ...unit, mantenimientos: newLogs });
     };
 
+    const openPhotoModal = (idx: number) => {
+        setMaintenancePhotoModal({ logIdx: idx, isOpen: true });
+        setNewMaintPhotoUrl("");
+    };
+
+    const addPhotoToLog = () => {
+        if(maintenancePhotoModal && newMaintPhotoUrl.trim()) {
+            const idx = maintenancePhotoModal.logIdx;
+            const log = (unit.mantenimientos || [])[idx];
+            const updatedLog = { ...log, Fotografias: [...(log.Fotografias || []), newMaintPhotoUrl.trim()] };
+            updateMaintenance(idx, updatedLog);
+            setNewMaintPhotoUrl("");
+        }
+    };
+    
+    const removePhotoFromLog = (logIdx: number, photoIdx: number) => {
+        const log = (unit.mantenimientos || [])[logIdx];
+        const updatedLog = { ...log, Fotografias: (log.Fotografias || []).filter((_, i) => i !== photoIdx) };
+        updateMaintenance(logIdx, updatedLog);
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4 mb-4">
@@ -514,7 +537,7 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
                 {(unit.mantenimientos || []).map((log, idx) => (
                     <Card key={idx}>
                         <CardContent className="p-4 space-y-3 relative group">
-                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Button variant="ghost" size="sm" onClick={() => duplicateMaintenance(idx)} title="Duplicar entrada"><Copy size={14}/></Button>
                             </div>
                             <div className="flex justify-between items-start">
@@ -526,10 +549,61 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
                                 <Input label="Responsable" value={log.Responsable} onChange={e => updateMaintenance(idx, {...log, Responsable: e.target.value})} />
                                 <Input label="Observaciones" value={log.Observaciones} onChange={e => updateMaintenance(idx, {...log, Observaciones: e.target.value})} />
                             </div>
+                            
+                            {/* Photos Section */}
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                     <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Evidencia Fotográfica</span>
+                                     <Button size="sm" variant="secondary" onClick={() => openPhotoModal(idx)} className="h-6 px-2 text-xs"><Camera size={12} className="mr-1"/> Gestionar Fotos ({(log.Fotografias || []).length})</Button>
+                                </div>
+                                <div className="flex gap-2 overflow-x-auto pb-2">
+                                    {(log.Fotografias || []).map((photo, photoIdx) => (
+                                        <div key={photoIdx} className="w-16 h-16 rounded border border-zinc-200 dark:border-zinc-700 overflow-hidden shrink-0">
+                                            <img src={photo} alt="evidencia" className="w-full h-full object-cover"/>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
                 ))}
             </div>
+
+            {/* Maintenance Photo Modal */}
+            <Modal
+                isOpen={!!maintenancePhotoModal}
+                onClose={() => setMaintenancePhotoModal(null)}
+                title="Fotografías de Mantenimiento"
+                footer={<Button onClick={() => setMaintenancePhotoModal(null)}>Cerrar</Button>}
+            >
+                <div className="space-y-4">
+                     <div className="flex gap-2">
+                         <Input 
+                            placeholder="URL de imagen..." 
+                            value={newMaintPhotoUrl} 
+                            onChange={(e) => setNewMaintPhotoUrl(e.target.value)} 
+                         />
+                         <Button onClick={addPhotoToLog} disabled={!newMaintPhotoUrl} size="sm"><Plus size={16}/></Button>
+                     </div>
+                     
+                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[50vh] overflow-y-auto">
+                        {maintenancePhotoModal && (unit.mantenimientos || [])[maintenancePhotoModal.logIdx]?.Fotografias?.map((photo, pIdx) => (
+                             <div key={pIdx} className="relative group aspect-square bg-zinc-100 dark:bg-zinc-800 rounded overflow-hidden">
+                                 <img src={photo} alt="evidencia" className="w-full h-full object-cover"/>
+                                 <button 
+                                    onClick={() => removePhotoFromLog(maintenancePhotoModal.logIdx, pIdx)}
+                                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                 >
+                                    <Trash2 size={10}/>
+                                 </button>
+                             </div>
+                        ))}
+                         {maintenancePhotoModal && (!(unit.mantenimientos || [])[maintenancePhotoModal.logIdx]?.Fotografias?.length) && (
+                             <div className="col-span-full text-center text-sm text-zinc-400 py-4">No hay fotos registradas.</div>
+                         )}
+                     </div>
+                </div>
+            </Modal>
         </div>
     );
 };
