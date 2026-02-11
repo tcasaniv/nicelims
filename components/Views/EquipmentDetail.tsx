@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
-import { ArrowLeft, Plus, Trash2, Save, Wrench, ClipboardList, Box, History, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Wrench, ClipboardList, Box, History, FileText, Copy } from 'lucide-react';
 
 interface EquipmentDetailProps {
   equipment: Equipo;
@@ -222,6 +222,18 @@ const ProceduresTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
     setFormData(newFormData);
   };
 
+  const duplicateTask = (taskIdx: number) => {
+      const newFormData = JSON.parse(JSON.stringify(formData));
+      const task = newFormData.ProcedimientoMantenimiento.mantenimiento[maintType][frequency][taskIdx];
+      const newTask = JSON.parse(JSON.stringify(task)); 
+      if (newTask.descripcion) {
+          newTask.descripcion.title = `${newTask.descripcion.title} (Copia)`;
+      }
+      
+      newFormData.ProcedimientoMantenimiento.mantenimiento[maintType][frequency].splice(taskIdx + 1, 0, newTask);
+      setFormData(newFormData);
+  };
+
   const updateTask = (taskIdx: number, field: string, value: any) => {
       const newFormData = JSON.parse(JSON.stringify(formData));
       const task = newFormData.ProcedimientoMantenimiento.mantenimiento[maintType][frequency][taskIdx];
@@ -297,9 +309,10 @@ const ProceduresTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
                                  <Input textarea rows={2} label="Descripción" value={task.descripcion?.contenido?.[0]} onChange={e => updateTask(idx, 'content', e.target.value)} />
                                  <Input label="Costo Ref (S/.)" type="number" value={task["MONTO REF"]?.amount} onChange={e => updateTask(idx, 'cost', e.target.value)} className="w-32" />
                                  
-                                 <button onClick={() => removeTask(idx)} className="absolute top-2 right-2 text-zinc-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                                     <Trash2 size={16} />
-                                 </button>
+                                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <button onClick={() => duplicateTask(idx)} className="text-zinc-400 hover:text-blue-500 p-1" title="Duplicar"><Copy size={16} /></button>
+                                      <button onClick={() => removeTask(idx)} className="text-zinc-400 hover:text-red-500 p-1" title="Eliminar"><Trash2 size={16} /></button>
+                                 </div>
                              </div>
                         ))
                     )}
@@ -326,6 +339,18 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
      };
      setFormData(prev => ({ ...prev, HojasDeVidaEquipos: [...(prev.HojasDeVidaEquipos || []), newUnit] }));
      setSelectedUnitIndex((formData.HojasDeVidaEquipos || []).length);
+  };
+
+  const duplicateUnit = (idx: number) => {
+     const unit = (formData.HojasDeVidaEquipos || [])[idx];
+     const newUnit = JSON.parse(JSON.stringify(unit));
+     if(newUnit.infoEquipo) {
+         newUnit.infoEquipo["Codigo Inventario Equipo"] = `${newUnit.infoEquipo["Codigo Inventario Equipo"]}-CP`;
+     }
+     
+     const newUnits = [...(formData.HojasDeVidaEquipos || [])];
+     newUnits.splice(idx + 1, 0, newUnit);
+     setFormData(prev => ({ ...prev, HojasDeVidaEquipos: newUnits }));
   };
 
   const deleteUnit = (idx: number) => {
@@ -382,7 +407,10 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
                                 <td className="px-4 py-3">{unit.infoEquipo?.["FECHA DE ADQUISICIÓN"] || "-"}</td>
                                 <td className="px-4 py-3"><span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-100">{(unit.mantenimientos || []).length} regs</span></td>
                                 <td className="px-4 py-3 text-right">
-                                    <button onClick={(e) => { e.stopPropagation(); deleteUnit(idx); }} className="text-red-500 hover:bg-red-50 p-1 rounded"><Trash2 size={16}/></button>
+                                    <div className="flex justify-end gap-1">
+                                        <button onClick={(e) => { e.stopPropagation(); duplicateUnit(idx); }} className="text-zinc-500 hover:bg-blue-50 hover:text-blue-600 p-1 rounded" title="Duplicar"><Copy size={16}/></button>
+                                        <button onClick={(e) => { e.stopPropagation(); deleteUnit(idx); }} className="text-zinc-500 hover:bg-red-50 hover:text-red-500 p-1 rounded" title="Eliminar"><Trash2 size={16}/></button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -411,6 +439,16 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
             Fotografias: []
         };
         onUpdate({ ...unit, mantenimientos: [newLog, ...(unit.mantenimientos || [])] });
+    };
+    
+    const duplicateMaintenance = (idx: number) => {
+      const log = (unit.mantenimientos || [])[idx];
+      const newLog = JSON.parse(JSON.stringify(log));
+      newLog.Nro = (unit.mantenimientos || []).length + 1; 
+      
+      const newLogs = [...(unit.mantenimientos || [])];
+      newLogs.splice(0, 0, newLog); 
+      onUpdate({ ...unit, mantenimientos: newLogs });
     };
 
     const updateMaintenance = (idx: number, log: MantenimientoLog) => {
@@ -444,7 +482,10 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
 
                 {(unit.mantenimientos || []).map((log, idx) => (
                     <Card key={idx}>
-                        <CardContent className="p-4 space-y-3">
+                        <CardContent className="p-4 space-y-3 relative group">
+                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button variant="ghost" size="sm" onClick={() => duplicateMaintenance(idx)} title="Duplicar entrada"><Copy size={14}/></Button>
+                            </div>
                             <div className="flex justify-between items-start">
                                 <span className="font-mono text-xs text-zinc-400">Reg #{log.Nro}</span>
                                 <Input type="date" value={log.Fecha} onChange={e => updateMaintenance(idx, {...log, Fecha: e.target.value})} className="w-auto text-xs py-1" />

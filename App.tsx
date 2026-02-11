@@ -120,6 +120,20 @@ const App: React.FC = () => {
     setCurrentView('LAB_DETAIL');
   };
 
+  const handleDuplicateLab = (index: number) => {
+    const labToCopy = (data.labs || [])[index];
+    if (labToCopy) {
+        const newLab = JSON.parse(JSON.stringify(labToCopy));
+        if (newLab.infoAmbiente) {
+            newLab.infoAmbiente["NOMBRE DEL LABORATORIO O TALLER"] = `${newLab.infoAmbiente["NOMBRE DEL LABORATORIO O TALLER"]} (Copia)`;
+            newLab.infoAmbiente["CÓDIGO DE LABORATORIO O TALLER"] = `${newLab.infoAmbiente["CÓDIGO DE LABORATORIO O TALLER"]}-CP`;
+        }
+        const newLabs = [...(data.labs || [])];
+        newLabs.splice(index + 1, 0, newLab);
+        setData(prev => ({ ...prev, labs: newLabs }));
+    }
+  };
+
   const confirmDeleteLab = (index: number) => {
     setLabToDelete(index);
     setIsDeleteModalOpen(true);
@@ -218,6 +232,7 @@ const App: React.FC = () => {
                             setCurrentView('LAB_DETAIL');
                         }}
                         onDeleteLab={confirmDeleteLab}
+                        onDuplicateLab={handleDuplicateLab}
                         onAddLab={handleAddLab}
                     />
                 )}

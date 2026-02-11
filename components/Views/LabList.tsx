@@ -2,16 +2,17 @@ import React from 'react';
 import { Lab } from '../../types';
 import { Card, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { ChevronRight, Trash2, Edit } from 'lucide-react';
+import { ChevronRight, Trash2, Edit, Copy } from 'lucide-react';
 
 interface LabListProps {
   labs: Lab[];
   onSelectLab: (index: number) => void;
   onDeleteLab: (index: number) => void;
+  onDuplicateLab: (index: number) => void;
   onAddLab: () => void;
 }
 
-export const LabList: React.FC<LabListProps> = ({ labs = [], onSelectLab, onDeleteLab, onAddLab }) => {
+export const LabList: React.FC<LabListProps> = ({ labs = [], onSelectLab, onDeleteLab, onDuplicateLab, onAddLab }) => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -48,10 +49,13 @@ export const LabList: React.FC<LabListProps> = ({ labs = [], onSelectLab, onDele
                 </div>
 
                 <div className="flex items-center gap-2 ml-4">
-                  <Button variant="ghost" size="sm" onClick={() => onSelectLab(index)}>
+                  <Button variant="ghost" size="sm" onClick={() => onDuplicateLab(index)} title="Duplicar">
+                    <Copy size={16} />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => onSelectLab(index)} title="Editar">
                     <Edit size={16} />
                   </Button>
-                  <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => onDeleteLab(index)}>
+                  <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => onDeleteLab(index)} title="Eliminar">
                     <Trash2 size={16} />
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => onSelectLab(index)}>

@@ -4,7 +4,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
-import { ArrowLeft, Plus, Trash2, Save, Cpu, HardDrive, Users, UserCheck, UserCog, GraduationCap } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Cpu, HardDrive, Users, UserCheck, UserCog, GraduationCap, Copy } from 'lucide-react';
 import { EquipmentDetail } from './EquipmentDetail';
 
 interface LabDetailProps {
@@ -178,6 +178,20 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, onBack, onUpdate }) =
         onUpdate(newData);
     }
   };
+  
+  const duplicateEquipment = (idx: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const eqToCopy = (formData.equipos || [])[idx];
+    const newEq = JSON.parse(JSON.stringify(eqToCopy));
+    newEq["NOMBRE DEL EQUIPO"] = `${newEq["NOMBRE DEL EQUIPO"]} (Copia)`;
+    
+    const newEquipos = [...(formData.equipos || [])];
+    newEquipos.splice(idx + 1, 0, newEq);
+    
+    const newData = { ...formData, equipos: newEquipos };
+    setFormData(newData);
+    onUpdate(newData);
+  };
 
   // --- SOFTWARE LOGIC ---
   const openSoftwareModal = (idx: number | null) => {
@@ -215,6 +229,19 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, onBack, onUpdate }) =
         setFormData(newData);
         onUpdate(newData);
     }
+  };
+  
+  const duplicateSoftware = (idx: number) => {
+      const swToCopy = (formData.software || [])[idx];
+      const newSw = JSON.parse(JSON.stringify(swToCopy));
+      newSw["NOMBRE DEL SOFTWARE"] = `${newSw["NOMBRE DEL SOFTWARE"]} (Copia)`;
+      
+      const newSoftwareList = [...(formData.software || [])];
+      newSoftwareList.splice(idx + 1, 0, newSw);
+      
+      const newData = { ...formData, software: newSoftwareList };
+      setFormData(newData);
+      onUpdate(newData);
   };
 
 
@@ -413,9 +440,14 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, onBack, onUpdate }) =
                                <p className="text-sm text-zinc-500">{eq.infoEquipo?.Marca} {eq.infoEquipo?.Modelo}</p>
                            </div>
                         </div>
-                        <Button variant="ghost" size="sm" className="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => deleteEquipment(idx, e)}>
-                            <Trash2 size={16} />
-                        </Button>
+                        <div className="flex gap-2">
+                             <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => duplicateEquipment(idx, e)} title="Duplicar">
+                                <Copy size={16} />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => deleteEquipment(idx, e)} title="Eliminar">
+                                <Trash2 size={16} />
+                            </Button>
+                        </div>
                      </div>
                      <div className="mt-4 flex gap-4 text-xs text-zinc-500">
                          <span className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">Cant: {eq["Nº DE EQUIPOS"] || "1"}</span>
@@ -452,6 +484,7 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, onBack, onUpdate }) =
                       </div>
                     </div>
                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <Button variant="ghost" size="sm" onClick={() => duplicateSoftware(idx)} title="Duplicar"><Copy size={16}/></Button>
                          <Button variant="secondary" size="sm" onClick={() => openSoftwareModal(idx)}>Editar</Button>
                          <Button variant="ghost" size="sm" className="text-red-500" onClick={() => deleteSoftware(idx)}><Trash2 size={16} /></Button>
                      </div>
