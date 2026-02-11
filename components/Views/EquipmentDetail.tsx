@@ -269,14 +269,47 @@ const ProceduresTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
       const newFormData = JSON.parse(JSON.stringify(formData));
       const task = newFormData.ProcedimientoMantenimiento.mantenimiento[maintType][frequency][taskIdx];
       
-      if (field === 'title') task.descripcion.title = value;
+      if (field === 'title') {
+          if(!task.descripcion) task.descripcion = { title: "", Prioridad: 1, contenido: [] };
+          task.descripcion.title = value;
+      }
       if (field === 'responsable') task.responsable = value;
-      if (field === 'cost') task["MONTO REF"].amount = value;
-      if (field === 'content') task.descripcion.contenido[0] = value; // Simplifying to single content line for UI
+      if (field === 'cost') {
+           if(!task["MONTO REF"]) task["MONTO REF"] = { currency: "S/.", amount: "0"};
+           task["MONTO REF"].amount = value;
+      }
       
       setFormData(newFormData);
   };
   
+  // New step handlers
+  const updateTaskStep = (taskIdx: number, stepIdx: number, value: string) => {
+      const newFormData = JSON.parse(JSON.stringify(formData));
+      const task = newFormData.ProcedimientoMantenimiento.mantenimiento[maintType][frequency][taskIdx];
+      if(!task.descripcion) task.descripcion = { title: "", Prioridad: 1, contenido: [] };
+      if(!task.descripcion.contenido) task.descripcion.contenido = [];
+      task.descripcion.contenido[stepIdx] = value;
+      setFormData(newFormData);
+  };
+
+  const addTaskStep = (taskIdx: number) => {
+      const newFormData = JSON.parse(JSON.stringify(formData));
+      const task = newFormData.ProcedimientoMantenimiento.mantenimiento[maintType][frequency][taskIdx];
+      if(!task.descripcion) task.descripcion = { title: "", Prioridad: 1, contenido: [] };
+      if(!task.descripcion.contenido) task.descripcion.contenido = [];
+      task.descripcion.contenido.push("");
+      setFormData(newFormData);
+  };
+
+  const removeTaskStep = (taskIdx: number, stepIdx: number) => {
+      const newFormData = JSON.parse(JSON.stringify(formData));
+      const task = newFormData.ProcedimientoMantenimiento.mantenimiento[maintType][frequency][taskIdx];
+      if(task.descripcion?.contenido) {
+          task.descripcion.contenido.splice(stepIdx, 1);
+      }
+      setFormData(newFormData);
+  };
+
   const removeTask = (taskIdx: number) => {
       const newFormData = JSON.parse(JSON.stringify(formData));
       newFormData.ProcedimientoMantenimiento.mantenimiento[maintType][frequency].splice(taskIdx, 1);
@@ -337,12 +370,47 @@ const ProceduresTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
                                      <Input label="Título Tarea" value={task.descripcion?.title} onChange={e => updateTask(idx, 'title', e.target.value)} />
                                      <Input label="Responsable" value={task.responsable} onChange={e => updateTask(idx, 'responsable', e.target.value)} />
                                  </div>
-                                 <Input textarea rows={2} label="Descripción" value={task.descripcion?.contenido?.[0]} onChange={e => updateTask(idx, 'content', e.target.value)} />
+                                 
+                                 {/* Steps Section */}
+                                 <div className="space-y-2">
+                                    <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Pasos / Procedimiento</label>
+                                    {(task.descripcion?.contenido || []).length === 0 && (
+                                         <div className="text-sm text-zinc-400 italic">No hay pasos definidos.</div>
+                                    )}
+                                    {(task.descripcion?.contenido || []).map((step, stepIdx) => (
+                                        <div key={stepIdx} className="flex gap-2 items-start group/step">
+                                            <span className="text-xs text-zinc-400 mt-2.5 w-5 text-right shrink-0 font-mono">{stepIdx + 1}.</span>
+                                            <Input 
+                                                textarea 
+                                                rows={2} 
+                                                value={step} 
+                                                onChange={e => updateTaskStep(idx, stepIdx, e.target.value)} 
+                                                className="flex-1 text-sm min-h-[2.5rem]"
+                                            />
+                                            <button 
+                                                onClick={() => removeTaskStep(idx, stepIdx)} 
+                                                className="mt-2 text-zinc-300 hover:text-red-500 transition-colors"
+                                                title="Eliminar paso"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={() => addTaskStep(idx)}
+                                        className="text-blue-600 dark:text-blue-400 text-xs pl-9 hover:bg-transparent"
+                                    >
+                                        <Plus size={12} className="mr-1"/> Añadir paso
+                                    </Button>
+                                 </div>
+
                                  <Input label="Costo Ref (S/.)" type="number" value={task["MONTO REF"]?.amount} onChange={e => updateTask(idx, 'cost', e.target.value)} className="w-32" />
                                  
                                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <button onClick={() => duplicateTask(idx)} className="text-zinc-400 hover:text-blue-500 p-1" title="Duplicar"><Copy size={16} /></button>
-                                      <button onClick={() => removeTask(idx)} className="text-zinc-400 hover:text-red-500 p-1" title="Eliminar"><Trash2 size={16} /></button>
+                                      <button onClick={() => duplicateTask(idx)} className="text-zinc-400 hover:text-blue-500 p-1" title="Duplicar Tarea"><Copy size={16} /></button>
+                                      <button onClick={() => removeTask(idx)} className="text-zinc-400 hover:text-red-500 p-1" title="Eliminar Tarea"><Trash2 size={16} /></button>
                                  </div>
                              </div>
                         ))

@@ -210,6 +210,29 @@ const App: React.FC = () => {
       });
   };
   
+  const handleMoveSoftware = (targetLabIndex: number, softwareIndex: number) => {
+      if (selectedLabIndex === null) return;
+      
+      setData(prev => {
+          const newData = JSON.parse(JSON.stringify(prev));
+          const sourceLab = newData.labs[selectedLabIndex];
+          const targetLab = newData.labs[targetLabIndex];
+          
+          if (!sourceLab || !targetLab || !sourceLab.software[softwareIndex]) return prev;
+          
+          const software = sourceLab.software[softwareIndex];
+          
+          // 1. Remove from source
+          sourceLab.software.splice(softwareIndex, 1);
+          
+          // 2. Add to target
+          if (!targetLab.software) targetLab.software = [];
+          targetLab.software.push(software);
+          
+          return newData;
+      });
+  };
+  
   const handleUpdateSettings = (newData: UniversityData) => {
     setData(newData);
     // Optional: Add toast notification here
@@ -328,6 +351,7 @@ const App: React.FC = () => {
                         onBack={() => setCurrentView('LABS_LIST')}
                         onUpdate={handleUpdateLab}
                         onMoveEquipment={handleMoveEquipment}
+                        onMoveSoftware={handleMoveSoftware}
                     />
                 )}
                 

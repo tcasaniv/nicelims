@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
 import { ArrowLeft, Plus, Trash2, Save, Cpu, HardDrive, Users, UserCheck, UserCog, GraduationCap, Copy, ArrowRightLeft, Image as ImageIcon } from 'lucide-react';
 import { EquipmentDetail } from './EquipmentDetail';
+import { SoftwareDetail } from './SoftwareDetail';
 
 interface LabDetailProps {
   lab: Lab;
@@ -14,24 +15,23 @@ interface LabDetailProps {
   onBack: () => void;
   onUpdate: (updatedLab: Lab) => void;
   onMoveEquipment?: (targetLabIndex: number, equipmentIndex: number, unitIndices?: number[]) => void;
+  onMoveSoftware?: (targetLabIndex: number, softwareIndex: number) => void;
 }
 
 type Tab = 'INFO' | 'EQUIPOS' | 'SOFTWARE';
 
-export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIndex, onBack, onUpdate, onMoveEquipment }) => {
+export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIndex, onBack, onUpdate, onMoveEquipment, onMoveSoftware }) => {
   const [activeTab, setActiveTab] = useState<Tab>('INFO');
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Lab>(lab);
   
   // Navigation State
   const [selectedEquipmentIndex, setSelectedEquipmentIndex] = useState<number | null>(null);
-  const [editingSoftwareIndex, setEditingSoftwareIndex] = useState<number | null>(null);
-  const [softwareForm, setSoftwareForm] = useState<Software | null>(null);
+  const [selectedSoftwareIndex, setSelectedSoftwareIndex] = useState<number | null>(null);
 
   // Photo Modals State
   const [labPhotoModalOpen, setLabPhotoModalOpen] = useState(false);
   const [newLabPhotoUrl, setNewLabPhotoUrl] = useState("");
-  const [softwarePhotoUrl, setSoftwarePhotoUrl] = useState("");
 
 
   // Move Equipment State
@@ -42,6 +42,14 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
   const [moveTargetLabIndex, setMoveTargetLabIndex] = useState<string>("");
   const [moveMode, setMoveMode] = useState<'ALL' | 'PARTIAL'>('ALL');
   const [selectedMoveUnits, setSelectedMoveUnits] = useState<number[]>([]);
+
+  // Move Software State
+  const [moveSoftwareModalState, setMoveSoftwareModalState] = useState<{
+      isOpen: boolean;
+      softwareIndex: number | null;
+  }>({ isOpen: false, softwareIndex: null });
+  const [moveSoftwareTargetLabIndex, setMoveSoftwareTargetLabIndex] = useState<string>("");
+
 
   // Update formData when prop lab changes (important for after moving equipment)
   React.useEffect(() => {
@@ -276,55 +284,33 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
   };
 
   // --- SOFTWARE LOGIC ---
-  const openSoftwareModal = (idx: number | null) => {
-      if (idx !== null && formData.software) {
-          setSoftwareForm({ ...formData.software[idx] });
-          setEditingSoftwareIndex(idx);
-      } else {
-          setSoftwareForm({
-              "Nº DE LICENCIAS": "1", "VERSIÓN": "", "NOMBRE DEL SOFTWARE": "", "TIPO DE LICENCIA": "", "COMENTARIOS": "", "Fotografias": []
-          });
-          setEditingSoftwareIndex(null); 
-      }
-      setSoftwarePhotoUrl("");
+  const addMockSoftware = () => {
+      const newSw: Software = {
+          "Nº DE LICENCIAS": "1", 
+          "VERSIÓN": "", 
+          "NOMBRE DEL SOFTWARE": "Nuevo Software", 
+          "TIPO DE LICENCIA": "", 
+          "COMENTARIOS": "", 
+          "Fotografias": []
+      };
+      const newLabs = { ...formData, software: [...(formData.software || []), newSw] };
+      setFormData(newLabs);
+      onUpdate(newLabs);
+      setSelectedSoftwareIndex((newLabs.software || []).length - 1);
   };
 
-  const saveSoftware = () => {
-      if (!softwareForm) return;
-      let newSoftwareList = [...(formData.software || [])];
-      
-      if (editingSoftwareIndex !== null) {
-          newSoftwareList[editingSoftwareIndex] = softwareForm;
-      } else {
-          newSoftwareList.push(softwareForm);
-      }
-      
-      const newData = { ...formData, software: newSoftwareList };
-      setFormData(newData);
-      onUpdate(newData);
-      setSoftwareForm(null);
-  };
-
-  const addSoftwarePhoto = () => {
-      if (softwareForm && softwarePhotoUrl.trim()) {
-          setSoftwareForm({
-              ...softwareForm,
-              Fotografias: [...(softwareForm.Fotografias || []), softwarePhotoUrl.trim()]
-          });
-          setSoftwarePhotoUrl("");
+  const updateSoftware = (updatedSw: Software) => {
+      if (selectedSoftwareIndex !== null) {
+          const newSoftware = [...(formData.software || [])];
+          newSoftware[selectedSoftwareIndex] = updatedSw;
+          const newData = { ...formData, software: newSoftware };
+          setFormData(newData);
+          onUpdate(newData);
       }
   };
 
-  const removeSoftwarePhoto = (idx: number) => {
-      if (softwareForm) {
-          setSoftwareForm({
-              ...softwareForm,
-              Fotografias: (softwareForm.Fotografias || []).filter((_, i) => i !== idx)
-          });
-      }
-  };
-
-  const deleteSoftware = (idx: number) => {
+  const deleteSoftware = (idx: number, e: React.MouseEvent) => {
+    e.stopPropagation();
     if(confirm("¿Eliminar este software?")) {
         const updatedSoftware = (formData.software || []).filter((_, i) => i !== idx);
         const newData = { ...formData, software: updatedSoftware };
@@ -333,7 +319,8 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
     }
   };
   
-  const duplicateSoftware = (idx: number) => {
+  const duplicateSoftware = (idx: number, e: React.MouseEvent) => {
+      e.stopPropagation();
       const swToCopy = (formData.software || [])[idx];
       const newSw = JSON.parse(JSON.stringify(swToCopy));
       newSw["NOMBRE DEL SOFTWARE"] = `${newSw["NOMBRE DEL SOFTWARE"]} (Copia)`;
@@ -346,6 +333,22 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
       onUpdate(newData);
   };
 
+  const openMoveSoftwareModal = (idx: number, e: React.MouseEvent) => {
+      e.stopPropagation();
+      setMoveSoftwareModalState({ isOpen: true, softwareIndex: idx });
+      setMoveSoftwareTargetLabIndex("");
+  };
+
+  const executeMoveSoftware = () => {
+      if (moveSoftwareTargetLabIndex === "" || moveSoftwareModalState.softwareIndex === null || !onMoveSoftware) return;
+      
+      const targetIdx = parseInt(moveSoftwareTargetLabIndex);
+      const swIdx = moveSoftwareModalState.softwareIndex;
+      
+      onMoveSoftware(targetIdx, swIdx);
+      setMoveSoftwareModalState({ isOpen: false, softwareIndex: null });
+  };
+
 
   // --- RENDER: EQUIPMENT DETAIL VIEW ---
   if (selectedEquipmentIndex !== null && formData.equipos?.[selectedEquipmentIndex]) {
@@ -354,6 +357,17 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
              equipment={formData.equipos[selectedEquipmentIndex]} 
              onUpdate={updateEquipment}
              onBack={() => setSelectedEquipmentIndex(null)}
+          />
+      );
+  }
+
+  // --- RENDER: SOFTWARE DETAIL VIEW ---
+  if (selectedSoftwareIndex !== null && formData.software?.[selectedSoftwareIndex]) {
+      return (
+          <SoftwareDetail
+              software={formData.software[selectedSoftwareIndex]}
+              onUpdate={updateSoftware}
+              onBack={() => setSelectedSoftwareIndex(null)}
           />
       );
   }
@@ -600,31 +614,39 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
         {activeTab === 'SOFTWARE' && (
           <div className="space-y-4">
              <div className="flex justify-end">
-                <Button onClick={() => openSoftwareModal(null)} size="sm"><Plus size={16} className="mr-2"/> Añadir Software</Button>
+                <Button onClick={addMockSoftware} size="sm"><Plus size={16} className="mr-2"/> Añadir Software</Button>
             </div>
              <div className="grid gap-4">
               {(formData.software || []).length === 0 && <div className="text-zinc-500 text-center py-8 bg-zinc-50 dark:bg-zinc-900 rounded-lg">No hay software registrado.</div>}
               {(formData.software || []).map((sw, idx) => (
-                <Card key={idx} className="group">
-                  <CardContent className="p-4 flex justify-between items-start">
-                    <div className="flex gap-4 items-center">
-                      <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded flex items-center justify-center text-purple-600 dark:text-purple-300 overflow-hidden shrink-0">
-                          {sw.Fotografias?.[0] ? <img src={sw.Fotografias[0]} alt="sw" className="w-full h-full object-cover"/> : <HardDrive size={24} />}
-                      </div>
-                      <div>
-                        <h4 className="font-bold">{sw["NOMBRE DEL SOFTWARE"] || "Software sin nombre"}</h4>
-                        <div className="text-sm text-zinc-500 flex gap-3 mt-1">
-                          <span>v{sw["VERSIÓN"] || "?"}</span>
-                          <span>•</span>
-                          <span>{sw["Nº DE LICENCIAS"] || "0"} Licencias</span>
+                <Card key={idx} className="cursor-pointer hover:border-purple-500 dark:hover:border-purple-400 transition-colors group">
+                  <CardContent className="p-4" onClick={() => setSelectedSoftwareIndex(idx)}>
+                     <div className="flex justify-between items-start">
+                        <div className="flex gap-4">
+                          <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded flex items-center justify-center text-purple-600 dark:text-purple-300 overflow-hidden shrink-0">
+                              {sw.Fotografias?.[0] ? <img src={sw.Fotografias[0]} alt="sw" className="w-full h-full object-cover"/> : <HardDrive size={24} />}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-lg">{sw["NOMBRE DEL SOFTWARE"] || "Software sin nombre"}</h4>
+                            <div className="text-sm text-zinc-500 flex gap-3 mt-1">
+                              <span>v{sw["VERSIÓN"] || "?"}</span>
+                              <span>•</span>
+                              <span>{sw["Nº DE LICENCIAS"] || "0"} Licencias</span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                         <div className="flex gap-2">
+                             <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={(e) => openMoveSoftwareModal(idx, e)} title="Mover Software">
+                                <ArrowRightLeft size={16} />
+                            </Button>
+                             <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => duplicateSoftware(idx, e)} title="Duplicar">
+                                <Copy size={16}/>
+                             </Button>
+                             <Button variant="ghost" size="sm" className="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => deleteSoftware(idx, e)} title="Eliminar">
+                                <Trash2 size={16} />
+                             </Button>
+                         </div>
                     </div>
-                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                         <Button variant="ghost" size="sm" onClick={() => duplicateSoftware(idx)} title="Duplicar"><Copy size={16}/></Button>
-                         <Button variant="secondary" size="sm" onClick={() => openSoftwareModal(idx)}>Editar</Button>
-                         <Button variant="ghost" size="sm" className="text-red-500" onClick={() => deleteSoftware(idx)}><Trash2 size={16} /></Button>
-                     </div>
                   </CardContent>
                 </Card>
               ))}
@@ -633,76 +655,6 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
         )}
       </div>
 
-      {/* Software Modal */}
-      <Modal 
-         isOpen={!!softwareForm} 
-         onClose={() => setSoftwareForm(null)} 
-         title={editingSoftwareIndex !== null ? "Editar Software" : "Nuevo Software"}
-         footer={<>
-            <Button variant="ghost" onClick={() => setSoftwareForm(null)}>Cancelar</Button>
-            <Button onClick={saveSoftware}>Guardar</Button>
-         </>}
-      >
-         {softwareForm && (
-             <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-                 <Input label="Nombre del Software" value={softwareForm["NOMBRE DEL SOFTWARE"]} onChange={e => setSoftwareForm({...softwareForm, "NOMBRE DEL SOFTWARE": e.target.value})} />
-                 <div className="grid grid-cols-2 gap-4">
-                     <Input label="Versión" value={softwareForm["VERSIÓN"]} onChange={e => setSoftwareForm({...softwareForm, "VERSIÓN": e.target.value})} />
-                     <Input label="Nº Licencias" value={softwareForm["Nº DE LICENCIAS"]} onChange={e => setSoftwareForm({...softwareForm, "Nº DE LICENCIAS": e.target.value})} />
-                 </div>
-                 <Input label="Tipo de Licencia" value={softwareForm["TIPO DE LICENCIA"]} onChange={e => setSoftwareForm({...softwareForm, "TIPO DE LICENCIA": e.target.value})} />
-                 <Input textarea label="Comentarios" value={softwareForm["COMENTARIOS"]} onChange={e => setSoftwareForm({...softwareForm, "COMENTARIOS": e.target.value})} />
-                 
-                 <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4">
-                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Imágenes del Software</label>
-                     <div className="flex gap-2 mb-2">
-                         <Input 
-                            placeholder="URL de imagen..." 
-                            value={softwarePhotoUrl} 
-                            onChange={(e) => setSoftwarePhotoUrl(e.target.value)} 
-                         />
-                         <Button onClick={addSoftwarePhoto} disabled={!softwarePhotoUrl} size="sm"><Plus size={16}/></Button>
-                     </div>
-                     <div className="grid grid-cols-3 gap-2">
-                         {(softwareForm.Fotografias || []).map((photo, idx) => (
-                             <div key={idx} className="relative group aspect-square bg-zinc-100 rounded overflow-hidden">
-                                 <img src={photo} alt="soft" className="w-full h-full object-cover"/>
-                                 <button 
-                                    onClick={() => removeSoftwarePhoto(idx)}
-                                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                 >
-                                    <Trash2 size={10}/>
-                                 </button>
-                             </div>
-                         ))}
-                     </div>
-                 </div>
-             </div>
-         )}
-      </Modal>
-
-      {/* Lab Photo Modal */}
-      <Modal
-        isOpen={labPhotoModalOpen}
-        onClose={() => setLabPhotoModalOpen(false)}
-        title="Añadir Fotografía del Laboratorio"
-        footer={<>
-            <Button variant="ghost" onClick={() => setLabPhotoModalOpen(false)}>Cancelar</Button>
-            <Button onClick={addLabPhoto}>Añadir</Button>
-        </>}
-      >
-           <div className="space-y-4">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Ingrese la URL de la imagen del ambiente.</p>
-            <Input 
-                label="URL de la Imagen" 
-                value={newLabPhotoUrl} 
-                onChange={(e) => setNewLabPhotoUrl(e.target.value)} 
-                placeholder="https://..." 
-                autoFocus
-            />
-        </div>
-      </Modal>
-      
       {/* Move Equipment Modal */}
       <Modal
         isOpen={moveModalState.isOpen}
@@ -776,6 +728,38 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
                      )}
                  </div>
              )}
+         </div>
+      </Modal>
+
+      {/* Move Software Modal */}
+      <Modal
+        isOpen={moveSoftwareModalState.isOpen}
+        onClose={() => setMoveSoftwareModalState({ isOpen: false, softwareIndex: null })}
+        title="Mover Software a Otro Laboratorio"
+        footer={<>
+            <Button variant="ghost" onClick={() => setMoveSoftwareModalState({ isOpen: false, softwareIndex: null })}>Cancelar</Button>
+            <Button onClick={executeMoveSoftware} disabled={!moveSoftwareTargetLabIndex}>Mover</Button>
+        </>}
+      >
+         <div className="space-y-4">
+             <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Seleccione el laboratorio de destino:</label>
+                <select 
+                    className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                    value={moveSoftwareTargetLabIndex}
+                    onChange={(e) => setMoveSoftwareTargetLabIndex(e.target.value)}
+                >
+                    <option value="">-- Seleccionar Laboratorio --</option>
+                    {allLabs && allLabs.map((l, idx) => (
+                        idx !== currentLabIndex ? (
+                            <option key={idx} value={idx}>
+                                {l.infoAmbiente?.["CÓDIGO DE LABORATORIO O TALLER"]} - {l.infoAmbiente?.["NOMBRE DEL LABORATORIO O TALLER"]}
+                            </option>
+                        ) : null
+                    ))}
+                </select>
+             </div>
+             <p className="text-xs text-zinc-500">Se moverá la entrada completa del software y todas sus licencias.</p>
          </div>
       </Modal>
     </div>
