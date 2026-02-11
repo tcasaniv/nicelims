@@ -92,6 +92,9 @@ const TabButton: React.FC<{ active: boolean; onClick: () => void; children: Reac
 
 // --- 1. GENERAL TAB ---
 const GeneralTab = ({ formData, setFormData, handleInfoChange }: { formData: Equipo, setFormData: React.Dispatch<React.SetStateAction<Equipo>>, handleInfoChange: any }) => {
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [newPhotoUrl, setNewPhotoUrl] = useState("");
+
   const addCharacteristic = () => {
     const newChar: Caracteristica = { Caracteristica: "", Descripcion: "" };
     setFormData(prev => ({ ...prev, caracteristicas: [...(prev.caracteristicas || []), newChar] }));
@@ -105,6 +108,14 @@ const GeneralTab = ({ formData, setFormData, handleInfoChange }: { formData: Equ
 
   const removeCharacteristic = (idx: number) => {
     setFormData(prev => ({ ...prev, caracteristicas: (prev.caracteristicas || []).filter((_, i) => i !== idx) }));
+  };
+
+  const handleAddPhoto = () => {
+      if (newPhotoUrl.trim()) {
+          setFormData(prev => ({ ...prev, Fotografias: [...(prev.Fotografias || []), newPhotoUrl.trim()] }));
+          setNewPhotoUrl("");
+          setIsPhotoModalOpen(false);
+      }
   };
 
   return (
@@ -156,7 +167,7 @@ const GeneralTab = ({ formData, setFormData, handleInfoChange }: { formData: Equ
             <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-2">
                     {(formData.Fotografias || []).map((photo, idx) => (
-                        <div key={idx} className="relative group aspect-square bg-zinc-100 rounded-md overflow-hidden border border-zinc-200">
+                        <div key={idx} className="relative group aspect-square bg-zinc-100 dark:bg-zinc-800 rounded-md overflow-hidden border border-zinc-200 dark:border-zinc-700">
                             {photo ? <img src={photo} alt="Equipo" className="w-full h-full object-cover" /> : <div className="flex items-center justify-center h-full text-zinc-400">Sin Imagen</div>}
                             <button 
                                 onClick={() => {
@@ -171,11 +182,8 @@ const GeneralTab = ({ formData, setFormData, handleInfoChange }: { formData: Equ
                         </div>
                     ))}
                     <button 
-                        onClick={() => {
-                             const url = prompt("Ingrese URL de la imagen:"); // Using prompt as minimal viable input for URL list, ideally a proper input
-                             if(url) setFormData({...formData, Fotografias: [...(formData.Fotografias || []), url]});
-                        }}
-                        className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-zinc-300 rounded-md hover:bg-zinc-50 transition-colors text-zinc-400 hover:text-blue-500"
+                        onClick={() => setIsPhotoModalOpen(true)}
+                        className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-blue-500 dark:hover:text-blue-400"
                     >
                         <Plus size={24}/>
                         <span className="text-xs mt-1">Añadir Foto</span>
@@ -184,6 +192,29 @@ const GeneralTab = ({ formData, setFormData, handleInfoChange }: { formData: Equ
             </CardContent>
          </Card>
       </div>
+
+      <Modal
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        title="Añadir Fotografía"
+        footer={
+            <>
+                <Button variant="ghost" onClick={() => setIsPhotoModalOpen(false)}>Cancelar</Button>
+                <Button onClick={handleAddPhoto}>Añadir</Button>
+            </>
+        }
+      >
+        <div className="space-y-4">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">Ingrese la URL de la imagen que desea asociar a este equipo.</p>
+            <Input 
+                label="URL de la Imagen" 
+                value={newPhotoUrl} 
+                onChange={(e) => setNewPhotoUrl(e.target.value)} 
+                placeholder="https://ejemplo.com/foto.jpg" 
+                autoFocus
+            />
+        </div>
+      </Modal>
     </div>
   );
 };
