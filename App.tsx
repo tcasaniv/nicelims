@@ -8,9 +8,10 @@ import { LabDetail } from './components/Views/LabDetail';
 import { Settings as SettingsView } from './components/Views/Settings';
 import { GlobalEquipmentList } from './components/Views/GlobalEquipmentList';
 import { GlobalSoftwareList } from './components/Views/GlobalSoftwareList';
+import { GlobalPersonnelList } from './components/Views/GlobalPersonnelList';
 import { Modal } from './components/ui/Modal';
 import { Button } from './components/ui/Button';
-import { LayoutDashboard, FlaskConical, Settings, Cpu, Save } from 'lucide-react';
+import { LayoutDashboard, FlaskConical, Settings, Cpu, Save, Users } from 'lucide-react';
 
 const App: React.FC = () => {
   const [data, setData] = useState<UniversityData>(DEFAULT_DATA);
@@ -257,6 +258,13 @@ const App: React.FC = () => {
                 <Save size={20} className="mr-3 shrink-0" />
                 Software Global
             </button>
+             <button 
+                 onClick={() => navigateTo('ALL_PERSONNEL')}
+                 className={`flex items-center w-full px-3 py-2 rounded-md transition-colors ${currentView === 'ALL_PERSONNEL' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
+            >
+                <Users size={20} className="mr-3 shrink-0" />
+                Personal Global
+            </button>
 
             <div className="pt-4 pb-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider px-3">
                 Sistema
@@ -329,6 +337,10 @@ const App: React.FC = () => {
 
                 {currentView === 'ALL_SOFTWARE' && (
                     <GlobalSoftwareList labs={data.labs || []} />
+                )}
+
+                {currentView === 'ALL_PERSONNEL' && (
+                    <GlobalPersonnelList data={data} />
                 )}
 
                 {currentView === 'SETTINGS' && (

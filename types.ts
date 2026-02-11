@@ -145,4 +145,4 @@ export interface Software {
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 // Navigation Types
-export type ViewType = 'DASHBOARD' | 'LABS_LIST' | 'LAB_DETAIL' | 'SETTINGS' | 'ALL_EQUIPMENT' | 'ALL_SOFTWARE';
+export type ViewType = 'DASHBOARD' | 'LABS_LIST' | 'LAB_DETAIL' | 'SETTINGS' | 'ALL_EQUIPMENT' | 'ALL_SOFTWARE' | 'ALL_PERSONNEL';
