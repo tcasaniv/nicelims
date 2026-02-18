@@ -21,7 +21,7 @@ interface SoftwareGroup {
 
 export const GlobalSoftwareList: React.FC<GlobalSoftwareListProps> = ({ labs }) => {
   // Group software by name
-  const groupedSoftware = labs.reduce<Record<string, SoftwareGroup>>((acc, lab) => {
+  const groupedSoftware = labs.reduce((acc, lab) => {
       (lab.software || []).forEach(sw => {
           const rawName = sw["NOMBRE DEL SOFTWARE"] || "Desconocido";
           const nameKey = rawName.trim().toUpperCase();
@@ -46,7 +46,7 @@ export const GlobalSoftwareList: React.FC<GlobalSoftwareListProps> = ({ labs }) 
           });
       });
       return acc;
-  }, {});
+  }, {} as Record<string, SoftwareGroup>);
 
   const softwareList = Object.values(groupedSoftware).sort((a, b) => a.name.localeCompare(b.name));
 

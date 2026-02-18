@@ -22,7 +22,7 @@ interface EquipmentGroup {
 
 export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs }) => {
   // Group equipment by name
-  const groupedEquipment = labs.reduce<Record<string, EquipmentGroup>>((acc, lab) => {
+  const groupedEquipment = labs.reduce((acc, lab) => {
       (lab.equipos || []).forEach(eq => {
           const rawName = eq["NOMBRE DEL EQUIPO"] || "Desconocido";
           const nameKey = rawName.trim().toUpperCase();
@@ -50,7 +50,7 @@ export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs }
           });
       });
       return acc;
-  }, {});
+  }, {} as Record<string, EquipmentGroup>);
 
   const equipmentList = Object.values(groupedEquipment).sort((a, b) => a.name.localeCompare(b.name));
 

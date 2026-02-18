@@ -223,76 +223,100 @@ const App: React.FC = () => {
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 overflow-hidden font-sans">
       
+      {/* Mobile Backdrop for Sidebar */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden animate-in fade-in duration-200"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col overflow-hidden whitespace-nowrap`}>
-         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-center min-w-[16rem]">
-             <div className="text-xl font-bold tracking-tight text-blue-600 dark:text-blue-400">NiceLIMS</div>
+      <aside 
+        className={`
+            fixed md:static inset-y-0 left-0 z-50 h-full bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300
+            ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 w-64 md:w-20'}
+        `}
+      >
+         {/* Clickable Header for Toggle */}
+         <div 
+            className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-center h-16 shrink-0 overflow-hidden cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors group"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            title="Mostrar/Ocultar Barra Lateral"
+         >
+             <div className={`transition-all duration-300 flex items-center ${sidebarOpen ? 'gap-2' : ''}`}>
+                 <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center text-white font-bold shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                    N
+                 </div>
+                 <div className={`text-xl font-bold tracking-tight text-blue-600 dark:text-blue-400 overflow-hidden whitespace-nowrap transition-all duration-300 ${sidebarOpen ? 'w-auto opacity-100' : 'w-0 opacity-0'}`}>
+                    NiceLIMS
+                 </div>
+             </div>
          </div>
-         <nav className="flex-1 p-4 space-y-1 min-w-[16rem] overflow-y-auto">
-            <button 
-                onClick={() => navigateTo('DASHBOARD')}
-                className={`flex items-center w-full px-3 py-2 rounded-md transition-colors ${currentView === 'DASHBOARD' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
-            >
-                <LayoutDashboard size={20} className="mr-3 shrink-0" />
-                Dashboard
-            </button>
-            <button 
-                onClick={() => navigateTo('LABS_LIST')}
-                className={`flex items-center w-full px-3 py-2 rounded-md transition-colors ${currentView === 'LABS_LIST' || currentView === 'LAB_DETAIL' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
-            >
-                <FlaskConical size={20} className="mr-3 shrink-0" />
-                Laboratorios
-            </button>
-            
-            <div className="pt-4 pb-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider px-3">
-                Inventario Global
-            </div>
-            
-            <button 
-                 onClick={() => navigateTo('ALL_EQUIPMENT')}
-                 className={`flex items-center w-full px-3 py-2 rounded-md transition-colors ${currentView === 'ALL_EQUIPMENT' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
-            >
-                <Cpu size={20} className="mr-3 shrink-0" />
-                Equipos Globales
-            </button>
-             <button 
-                 onClick={() => navigateTo('ALL_SOFTWARE')}
-                 className={`flex items-center w-full px-3 py-2 rounded-md transition-colors ${currentView === 'ALL_SOFTWARE' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
-            >
-                <Save size={20} className="mr-3 shrink-0" />
-                Software Global
-            </button>
-             <button 
-                 onClick={() => navigateTo('ALL_PERSONNEL')}
-                 className={`flex items-center w-full px-3 py-2 rounded-md transition-colors ${currentView === 'ALL_PERSONNEL' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
-            >
-                <Users size={20} className="mr-3 shrink-0" />
-                Personal Global
-            </button>
 
-            <div className="pt-4 pb-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider px-3">
-                Sistema
-            </div>
+         <nav className="flex-1 p-4 space-y-2 overflow-y-auto overflow-x-hidden">
+            <SidebarButton 
+                active={currentView === 'DASHBOARD'} 
+                onClick={() => navigateTo('DASHBOARD')} 
+                icon={<LayoutDashboard size={20} />} 
+                label="Dashboard" 
+                sidebarOpen={sidebarOpen}
+            />
+            <SidebarButton 
+                active={currentView === 'LABS_LIST' || currentView === 'LAB_DETAIL'} 
+                onClick={() => navigateTo('LABS_LIST')} 
+                icon={<FlaskConical size={20} />} 
+                label="Laboratorios" 
+                sidebarOpen={sidebarOpen}
+            />
+            
+            <SidebarSectionTitle label="Inventario Global" sidebarOpen={sidebarOpen} />
+            
+            <SidebarButton 
+                active={currentView === 'ALL_EQUIPMENT'} 
+                onClick={() => navigateTo('ALL_EQUIPMENT')} 
+                icon={<Cpu size={20} />} 
+                label="Equipos Globales" 
+                sidebarOpen={sidebarOpen}
+            />
+            <SidebarButton 
+                active={currentView === 'ALL_SOFTWARE'} 
+                onClick={() => navigateTo('ALL_SOFTWARE')} 
+                icon={<Save size={20} />} 
+                label="Software Global" 
+                sidebarOpen={sidebarOpen}
+            />
+            <SidebarButton 
+                active={currentView === 'ALL_PERSONNEL'} 
+                onClick={() => navigateTo('ALL_PERSONNEL')} 
+                icon={<Users size={20} />} 
+                label="Personal Global" 
+                sidebarOpen={sidebarOpen}
+            />
 
-            <button 
-                 onClick={() => navigateTo('SETTINGS')}
-                 className={`flex items-center w-full px-3 py-2 rounded-md transition-colors ${currentView === 'SETTINGS' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}`}
-            >
-                <Settings size={20} className="mr-3 shrink-0" />
-                Configuración
-            </button>
+            <SidebarSectionTitle label="Sistema" sidebarOpen={sidebarOpen} />
+
+            <SidebarButton 
+                active={currentView === 'SETTINGS'} 
+                onClick={() => navigateTo('SETTINGS')} 
+                icon={<Settings size={20} />} 
+                label="Configuración" 
+                sidebarOpen={sidebarOpen}
+            />
          </nav>
          
-         <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 min-w-[16rem]">
-             <div className="text-xs text-zinc-500">
-                 <p className="font-semibold">{data["ABREVIATURA UNIVERSIDAD"] || "UNSA"}</p>
-                 <p className="truncate">{data["PROGRAMA DE ESTUDIOS"] || "SISTEMA"}</p>
+         <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 shrink-0 overflow-hidden h-16 flex items-center">
+             <div className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0 md:hidden'}`}>
+                 <div className="text-xs text-zinc-500 whitespace-nowrap">
+                     <p className="font-semibold truncate max-w-[12rem]">{data["ABREVIATURA UNIVERSIDAD"] || "UNSA"}</p>
+                     <p className="truncate max-w-[12rem]">{data["PROGRAMA DE ESTUDIOS"] || "SISTEMA"}</p>
+                 </div>
              </div>
          </div>
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 relative">
+      <div className="flex-1 flex flex-col min-w-0 relative h-full">
         <MenuBar 
           onImport={handleImport} 
           onExport={handleExport} 
@@ -398,5 +422,43 @@ const App: React.FC = () => {
     </div>
   );
 };
+
+// Helper Components for Sidebar
+const SidebarButton = ({ active, onClick, icon, label, sidebarOpen }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string, sidebarOpen: boolean }) => (
+    <button 
+        onClick={onClick}
+        className={`
+            flex items-center w-full px-3 py-2 rounded-md transition-all duration-200 group relative
+            ${active ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'}
+            ${!sidebarOpen ? 'justify-center' : ''}
+        `}
+        title={!sidebarOpen ? label : undefined}
+    >
+        <span className="shrink-0">{icon}</span>
+        
+        <span className={`
+            whitespace-nowrap overflow-hidden transition-all duration-300 origin-left
+            ${sidebarOpen ? 'w-auto opacity-100 ml-3' : 'w-0 opacity-0 ml-0'}
+        `}>
+            {label}
+        </span>
+        
+        {/* Tooltip for collapsed mode (desktop) */}
+        {!sidebarOpen && (
+            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-zinc-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap hidden md:block">
+                {label}
+            </div>
+        )}
+    </button>
+);
+
+const SidebarSectionTitle = ({ label, sidebarOpen }: { label: string, sidebarOpen: boolean }) => (
+    <div className={`
+        pt-4 pb-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider px-3 transition-all duration-300 overflow-hidden whitespace-nowrap
+        ${sidebarOpen ? 'opacity-100' : 'opacity-0 h-0 pt-0 pb-0'}
+    `}>
+        {label}
+    </div>
+);
 
 export default App;
