@@ -38,7 +38,7 @@ const App: React.FC = () => {
     }
   }, [theme]);
 
-  // Handle window resize to auto-collapse on mobile
+  // Handle window resize to auto-collapse on mobile initially
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
@@ -49,10 +49,7 @@ const App: React.FC = () => {
     };
     
     // Initial check
-    if (window.innerWidth < 768) setSidebarOpen(false);
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    handleResize();
   }, []);
 
   // Import JSON
@@ -165,7 +162,6 @@ const App: React.FC = () => {
       if (selectedLabIndex === null) return;
       
       setData(prev => {
-          // Deep clone to avoid mutation
           const newData = JSON.parse(JSON.stringify(prev));
           const sourceLab = newData.labs[selectedLabIndex];
           const targetLab = newData.labs[targetLabIndex];
@@ -175,37 +171,25 @@ const App: React.FC = () => {
           const equipment = sourceLab.equipos[equipmentIndex];
 
           if (!unitIndices || unitIndices.length === 0) {
-              // Move ENTIRE equipment
-              // 1. Remove from source
               sourceLab.equipos.splice(equipmentIndex, 1);
-              
-              // 2. Add to target
               if (!targetLab.equipos) targetLab.equipos = [];
               targetLab.equipos.push(equipment);
           } else {
-              // Move SPECIFIC units
-              // 1. Create a copy of the equipment for target lab (initially with no units)
               const newEquipmentForTarget = JSON.parse(JSON.stringify(equipment));
               newEquipmentForTarget.HojasDeVidaEquipos = [];
-              // Reset quantities mostly for clarity, though strict JSON structure might require keeping them
               newEquipmentForTarget["Nº DE EQUIPOS"] = unitIndices.length.toString(); 
 
-              // 2. Separate units
               const unitsToMove = (equipment.HojasDeVidaEquipos || []).filter((_: any, i: number) => unitIndices.includes(i));
               const unitsToKeep = (equipment.HojasDeVidaEquipos || []).filter((_: any, i: number) => !unitIndices.includes(i));
 
-              // 3. Update source equipment
               equipment.HojasDeVidaEquipos = unitsToKeep;
               equipment["Nº DE EQUIPOS"] = unitsToKeep.length.toString();
 
-              // 4. Update target equipment
               newEquipmentForTarget.HojasDeVidaEquipos = unitsToMove;
               
-              // 5. Add to target lab
               if (!targetLab.equipos) targetLab.equipos = [];
               targetLab.equipos.push(newEquipmentForTarget);
           }
-          
           return newData;
       });
   };
@@ -222,10 +206,8 @@ const App: React.FC = () => {
           
           const software = sourceLab.software[softwareIndex];
           
-          // 1. Remove from source
           sourceLab.software.splice(softwareIndex, 1);
           
-          // 2. Add to target
           if (!targetLab.software) targetLab.software = [];
           targetLab.software.push(software);
           
@@ -235,7 +217,6 @@ const App: React.FC = () => {
   
   const handleUpdateSettings = (newData: UniversityData) => {
     setData(newData);
-    // Optional: Add toast notification here
   };
 
 
