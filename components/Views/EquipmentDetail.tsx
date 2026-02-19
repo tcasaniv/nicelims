@@ -562,6 +562,13 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
       onUpdate({ ...unit, mantenimientos: newLogs });
     };
 
+    const deleteMaintenance = (idx: number) => {
+         if(confirm("¿Eliminar este registro de mantenimiento?")) {
+            const newLogs = (unit.mantenimientos || []).filter((_, i) => i !== idx);
+            onUpdate({ ...unit, mantenimientos: newLogs });
+         }
+    };
+
     const updateMaintenance = (idx: number, log: MantenimientoLog) => {
         const newLogs = [...(unit.mantenimientos || [])];
         newLogs[idx] = log;
@@ -617,6 +624,7 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
                         <CardContent className="p-4 space-y-3 relative group">
                             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Button variant="ghost" size="sm" onClick={() => duplicateMaintenance(idx)} title="Duplicar entrada"><Copy size={14}/></Button>
+                                <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => deleteMaintenance(idx)} title="Eliminar entrada"><Trash2 size={14}/></Button>
                             </div>
                             <div className="flex justify-between items-start">
                                 <span className="font-mono text-xs text-zinc-400">Reg #{log.Nro}</span>
