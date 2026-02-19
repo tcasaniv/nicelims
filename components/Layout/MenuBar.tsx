@@ -1,8 +1,10 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Download, Moon, Sun, Monitor, Menu, Plus, Info, Settings, PanelLeft, ChevronDown, ChevronRight, X, FileJson, Layout, HardDrive, Users, Cpu } from 'lucide-react';
+import { Download, Moon, Sun, Monitor, Menu, Plus, Info, Settings, PanelLeft, ChevronDown, ChevronRight, X, FileJson, Layout, HardDrive, Users, Cpu, FilePenLine } from 'lucide-react';
 import { ThemeMode, ViewType } from '../../types';
 
 interface MenuBarProps {
+  fileName: string;
+  onRename: () => void;
   onImport: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onExport: () => void;
   theme: ThemeMode;
@@ -15,6 +17,8 @@ interface MenuBarProps {
 }
 
 export const MenuBar: React.FC<MenuBarProps> = ({ 
+  fileName,
+  onRename,
   onImport, 
   onExport, 
   theme, 
@@ -53,6 +57,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
       label: 'Archivo',
       items: [
         { label: 'Abrir archivo', action: triggerImport, icon: <FileJson size={14}/> },
+        { label: 'Renombrar archivo', action: onRename, icon: <FilePenLine size={14}/> },
         { label: 'Exportar archivo', action: onExport, icon: <Download size={14}/> },
       ]
     },
@@ -154,13 +159,19 @@ export const MenuBar: React.FC<MenuBarProps> = ({
         </div>
       </div>
 
-      {/* --- CENTER TITLE --- */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden lg:block pointer-events-none">
+      {/* --- CENTER TITLE (Clickable) --- */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden lg:block">
+             <button 
+                onClick={onRename} 
+                className="hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-700/50 px-1.5 py-0.5 rounded transition-colors"
+                title="Renombrar archivo"
+             >
           <div className="bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50 px-6 py-1 rounded text-xs text-zinc-500 dark:text-zinc-400 font-medium flex items-center gap-2">
-             <span>NiceLIMS</span>
-             <span className="opacity-50">-</span>
-             <span>data_lims</span>
+                <span>NiceLIMS</span>
+                <span className="opacity-50">-</span>
+                {fileName}
           </div>
+             </button>
       </div>
 
       {/* --- RIGHT ACTIONS --- */}
