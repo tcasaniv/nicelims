@@ -622,7 +622,7 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
                 {(unit.mantenimientos || []).map((log, idx) => (
                     <Card key={idx}>
                         <CardContent className="p-4 space-y-3 relative group">
-                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="relative top-2 right-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Button variant="ghost" size="sm" onClick={() => duplicateMaintenance(idx)} title="Duplicar entrada"><Copy size={14}/></Button>
                                 <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => deleteMaintenance(idx)} title="Eliminar entrada"><Trash2 size={14}/></Button>
                             </div>
