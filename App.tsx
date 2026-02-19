@@ -22,6 +22,12 @@ const App: React.FC = () => {
     const [currentView, setCurrentView] = useState<ViewType>('DASHBOARD');
     const [selectedLabIndex, setSelectedLabIndex] = useState<number | null>(null);
 
+    // Navigation Target State (for deep linking from global lists)
+    const [navTarget, setNavTarget] = useState<{
+        equipmentIndex?: number;
+        softwareIndex?: number;
+    } | null>(null);
+
     // File Name State
     const [fileName, setFileName] = useState("data_lims");
 
@@ -117,10 +123,24 @@ const App: React.FC = () => {
     const navigateTo = (view: ViewType) => {
         setCurrentView(view);
         setSelectedLabIndex(null);
+        setNavTarget(null); // Clear specific targets when navigating via menu
         // On mobile, auto close sidebar after navigation
         if (window.innerWidth < 768) {
             setSidebarOpen(false);
         }
+    };
+
+    // Deep Navigation Handlers
+    const handleNavigateToEquipment = (labIndex: number, equipmentIndex: number) => {
+        setSelectedLabIndex(labIndex);
+        setNavTarget({ equipmentIndex });
+        setCurrentView('LAB_DETAIL');
+    };
+
+    const handleNavigateToSoftware = (labIndex: number, softwareIndex: number) => {
+        setSelectedLabIndex(labIndex);
+        setNavTarget({ softwareIndex });
+        setCurrentView('LAB_DETAIL');
     };
 
     // CRUD Operations
@@ -149,6 +169,7 @@ const App: React.FC = () => {
         setData(prev => ({ ...prev, labs: [...(prev.labs || []), newLab] }));
         setSelectedLabIndex((data.labs || []).length);
         setCurrentView('LAB_DETAIL');
+        setNavTarget(null);
     };
 
     const handleDuplicateLab = (index: number) => {
@@ -293,8 +314,8 @@ const App: React.FC = () => {
             {/* Sidebar */}
             <aside
                 className={`fixed md:static inset-y-0 left-0 z-50 h-full bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300
-${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 w-64 md:w-20'}
-`}
+            ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 w-64 md:w-20'}
+        `}
             >
                 {/* Clickable Header for Toggle */}
                 <div
@@ -430,10 +451,15 @@ ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 w-64 
                                 lab={(data.labs || [])[selectedLabIndex]}
                                 allLabs={data.labs || []}
                                 currentLabIndex={selectedLabIndex}
-                                onBack={() => setCurrentView('LABS_LIST')}
+                                onBack={() => {
+                                    setCurrentView('LABS_LIST');
+                                    setNavTarget(null);
+                                }}
                                 onUpdate={handleUpdateLab}
                                 onMoveEquipment={handleMoveEquipment}
                                 onMoveSoftware={handleMoveSoftware}
+                                initialEquipmentIndex={navTarget?.equipmentIndex}
+                                initialSoftwareIndex={navTarget?.softwareIndex}
                             />
                         )}
 
@@ -446,11 +472,17 @@ ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 w-64 
                         )}
 
                         {currentView === 'ALL_EQUIPMENT' && (
-                            <GlobalEquipmentList labs={data.labs || []} />
+                            <GlobalEquipmentList
+                                labs={data.labs || []}
+                                onNavigateToItem={handleNavigateToEquipment}
+                            />
                         )}
 
                         {currentView === 'ALL_SOFTWARE' && (
-                            <GlobalSoftwareList labs={data.labs || []} />
+                            <GlobalSoftwareList
+                                labs={data.labs || []}
+                                onNavigateToItem={handleNavigateToSoftware}
+                            />
                         )}
 
                         {currentView === 'ALL_PERSONNEL' && (
@@ -538,18 +570,18 @@ const SidebarButton = ({ active, onClick, icon, label, sidebarOpen }: { active: 
     <button
         onClick={onClick}
         className={`
-flex items-center w-full px-3 py-2 rounded-md transition-all duration-200 group relative
-${active ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'}
-${!sidebarOpen ? 'justify-center' : ''}
-`}
+            flex items-center w-full px-3 py-2 rounded-md transition-all duration-200 group relative
+            ${active ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'}
+            ${!sidebarOpen ? 'justify-center' : ''}
+        `}
         title={!sidebarOpen ? label : undefined}
     >
         <span className="shrink-0">{icon}</span>
 
         <span className={`
-whitespace-nowrap overflow-hidden transition-all duration-300 origin-left
-${sidebarOpen ? 'w-auto opacity-100 ml-3' : 'w-0 opacity-0 ml-0'}
-`}>
+        whitespace-nowrap overflow-hidden transition-all duration-300 origin-left
+            ${sidebarOpen ? 'w-auto opacity-100 ml-3' : 'w-0 opacity-0 ml-0'}
+            `}>
             {label}
         </span>
 
@@ -564,9 +596,9 @@ ${sidebarOpen ? 'w-auto opacity-100 ml-3' : 'w-0 opacity-0 ml-0'}
 
 const SidebarSectionTitle = ({ label, sidebarOpen }: { label: string, sidebarOpen: boolean }) => (
     <div className={`
-pt-4 pb-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider px-3 transition-all duration-300 overflow-hidden whitespace-nowrap
-${sidebarOpen ? 'opacity-100' : 'opacity-0 h-0 pt-0 pb-0'}
-`}>
+    pt-4 pb-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider px-3 transition-all duration-300 overflow-hidden whitespace-nowrap
+    ${sidebarOpen ? 'opacity-100' : 'opacity-0 h-0 pt-0 pb-0'}
+    `}>
         {label}
     </div>
 );

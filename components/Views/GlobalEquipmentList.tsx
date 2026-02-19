@@ -6,6 +6,7 @@ import { Cpu, MapPin, Box, ClipboardList, Calendar, Tag, ChevronUp, ChevronDown,
 
 interface GlobalEquipmentListProps {
     labs: Lab[];
+    onNavigateToItem?: (labIndex: number, equipmentIndex: number) => void;
 }
 
 // Grouped View Interface
@@ -14,6 +15,8 @@ interface EquipmentGroup {
     totalQuantity: number;
     totalUnits: number;
     locations: {
+        labIndex: number;
+        equipmentIndex: number;
         labCode: string;
         labName: string;
         brand: string;
@@ -33,11 +36,14 @@ interface FlatUnit {
     labName: string;
     acquisitionDate: string;
     locationInLab: string;
+    // Indices for navigation
+    labIndex: number;
+    equipmentIndex: number;
 }
 
 type Tab = 'TYPES' | 'UNITS';
 
-export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs }) => {
+export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs, onNavigateToItem }) => {
     const [activeTab, setActiveTab] = useState<Tab>('TYPES');
 
     // --- STATE FOR TAB 1 (TYPES) ---
@@ -74,10 +80,10 @@ export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs }
     // --- LOGIC FOR GROUPED TYPES (TAB 1) ---
     const processedTypes = useMemo(() => {
         // 1. Group equipment by name
-        const grouped = labs.reduce((acc, lab) => {
+        const grouped = labs.reduce((acc, lab, labIdx) => {
             const labCode = lab.infoAmbiente?.["CÓDIGO DE LABORATORIO O TALLER"] || "S/C";
 
-            (lab.equipos || []).forEach(eq => {
+            (lab.equipos || []).forEach((eq, eqIdx) => {
                 const rawName = eq["NOMBRE DEL EQUIPO"] || "Desconocido";
                 const nameKey = rawName.trim().toUpperCase();
 
@@ -96,6 +102,8 @@ export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs }
                 acc[nameKey].totalQuantity += isNaN(qty) ? 0 : qty;
                 acc[nameKey].totalUnits += units;
                 acc[nameKey].locations.push({
+                    labIndex: labIdx,
+                    equipmentIndex: eqIdx,
                     labCode: labCode,
                     labName: lab.infoAmbiente?.["NOMBRE DEL LABORATORIO O TALLER"] || "Sin Nombre",
                     brand: eq.infoEquipo?.Marca || "-",
@@ -176,7 +184,9 @@ export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs }
                         labCode,
                         labName,
                         acquisitionDate: unit.infoEquipo?.["FECHA DE ADQUISICIÓN"] || "",
-                        locationInLab: unit.infoEquipo?.Ubicación || ""
+                        locationInLab: unit.infoEquipo?.Ubicación || "",
+                        labIndex: labIdx,
+                        equipmentIndex: eqIdx
                     });
                 });
             });
@@ -368,10 +378,15 @@ export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs }
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-wrap gap-2">
                                                         {item.locations.map((loc, locIdx) => (
-                                                            <div key={locIdx} className="bg-zinc-50 dark:bg-zinc-800 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-700 text-xs flex gap-1 items-center" title={`${loc.labName} | ${loc.brand} ${loc.model}`}>
-                                                                <MapPin size={10} className="text-zinc-400" />
-                                                                <span className="font-semibold text-blue-600 dark:text-blue-400">{loc.labCode}</span>
-                                                                <span className="text-zinc-500">: {loc.brand} {loc.model} ({loc.quantity})</span>
+                                                            <div
+                                                                key={locIdx}
+                                                                className="bg-zinc-50 dark:bg-zinc-800 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-700 text-xs flex gap-1 items-center cursor-pointer hover:border-blue-400 hover:text-blue-600 transition-colors group"
+                                                                title="Click para ir a detalle"
+                                                                onClick={() => onNavigateToItem && onNavigateToItem(loc.labIndex, loc.equipmentIndex)}
+                                                            >
+                                                                <MapPin size={10} className="text-zinc-400 group-hover:text-blue-500" />
+                                                                <span className="font-semibold text-blue-600 dark:text-blue-400 group-hover:underline">{loc.labCode}</span>
+                                                                <span className="text-zinc-500 group-hover:text-zinc-700 dark:group-hover:text-zinc-300">: {loc.brand} {loc.model} ({loc.quantity})</span>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -464,9 +479,13 @@ export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs }
                                         <tr><td colSpan={5} className="px-6 py-10 text-center text-zinc-500">No se encontraron unidades individuales.</td></tr>
                                     ) : (
                                         processedUnits.map((unit) => (
-                                            <tr key={unit.uniqueId} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                                            <tr
+                                                key={unit.uniqueId}
+                                                className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer group"
+                                                onClick={() => onNavigateToItem && onNavigateToItem(unit.labIndex, unit.equipmentIndex)}
+                                            >
                                                 <td className="px-6 py-3">
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                                         <Tag size={14} className="text-blue-500" />
                                                         <span className="font-mono font-medium text-zinc-900 dark:text-zinc-100">{unit.inventoryCode}</span>
                                                     </div>

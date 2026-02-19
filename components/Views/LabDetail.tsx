@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Lab, Equipo, Software, PersonalInfo, Documento } from '../../types';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -17,11 +17,23 @@ interface LabDetailProps {
     onUpdate: (updatedLab: Lab) => void;
     onMoveEquipment?: (targetLabIndex: number, equipmentIndex: number, unitIndices?: number[]) => void;
     onMoveSoftware?: (targetLabIndex: number, softwareIndex: number) => void;
+    initialEquipmentIndex?: number;
+    initialSoftwareIndex?: number;
 }
 
 type Tab = 'INFO' | 'EQUIPOS' | 'SOFTWARE';
 
-export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIndex, onBack, onUpdate, onMoveEquipment, onMoveSoftware }) => {
+export const LabDetail: React.FC<LabDetailProps> = ({
+    lab,
+    allLabs,
+    currentLabIndex,
+    onBack,
+    onUpdate,
+    onMoveEquipment,
+    onMoveSoftware,
+    initialEquipmentIndex,
+    initialSoftwareIndex
+}) => {
     const [activeTab, setActiveTab] = useState<Tab>('INFO');
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState<Lab>(lab);
@@ -83,9 +95,20 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
 
 
     // Update formData when prop lab changes (important for after moving equipment)
-    React.useEffect(() => {
+    useEffect(() => {
         setFormData(lab);
     }, [lab]);
+
+    // Handle deep navigation (initial selections from global views)
+    useEffect(() => {
+        if (initialEquipmentIndex !== undefined) {
+            setActiveTab('EQUIPOS');
+            setSelectedEquipmentIndex(initialEquipmentIndex);
+        } else if (initialSoftwareIndex !== undefined) {
+            setActiveTab('SOFTWARE');
+            setSelectedSoftwareIndex(initialSoftwareIndex);
+        }
+    }, [initialEquipmentIndex, initialSoftwareIndex]);
 
     // --- PROCESSING LISTS (FILTER/SORT) ---
     const processedEquipos = useMemo(() => {

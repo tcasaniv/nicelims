@@ -5,12 +5,15 @@ import { Save, MapPin, ChevronUp, ChevronDown, ListFilter, Tag } from 'lucide-re
 
 interface GlobalSoftwareListProps {
     labs: Lab[];
+    onNavigateToItem?: (labIndex: number, softwareIndex: number) => void;
 }
 
 interface SoftwareGroup {
     name: string;
     totalLicenses: number;
     locations: {
+        labIndex: number;
+        softwareIndex: number;
         labCode: string;
         labName: string;
         version: string;
@@ -19,7 +22,7 @@ interface SoftwareGroup {
     }[];
 }
 
-export const GlobalSoftwareList: React.FC<GlobalSoftwareListProps> = ({ labs }) => {
+export const GlobalSoftwareList: React.FC<GlobalSoftwareListProps> = ({ labs, onNavigateToItem }) => {
     // State for Column Filters
     const [filters, setFilters] = useState({
         name: "",
@@ -32,10 +35,10 @@ export const GlobalSoftwareList: React.FC<GlobalSoftwareListProps> = ({ labs }) 
 
     const processedList = useMemo(() => {
         // 1. Group Data
-        const grouped = labs.reduce((acc, lab) => {
+        const grouped = labs.reduce((acc, lab, labIdx) => {
             const labCode = lab.infoAmbiente?.["CÓDIGO DE LABORATORIO O TALLER"] || "S/C";
 
-            (lab.software || []).forEach(sw => {
+            (lab.software || []).forEach((sw, swIdx) => {
                 const rawName = sw["NOMBRE DEL SOFTWARE"] || "Desconocido";
                 const nameKey = rawName.trim().toUpperCase();
 
@@ -51,6 +54,8 @@ export const GlobalSoftwareList: React.FC<GlobalSoftwareListProps> = ({ labs }) 
 
                 acc[nameKey].totalLicenses += isNaN(lic) ? 0 : lic;
                 acc[nameKey].locations.push({
+                    labIndex: labIdx,
+                    softwareIndex: swIdx,
                     labCode: labCode,
                     labName: lab.infoAmbiente?.["NOMBRE DEL LABORATORIO O TALLER"] || "Sin Nombre",
                     version: sw["VERSIÓN"] || "-",
@@ -196,12 +201,17 @@ export const GlobalSoftwareList: React.FC<GlobalSoftwareListProps> = ({ labs }) 
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-wrap gap-2">
                                                     {item.locations.map((loc, locIdx) => (
-                                                        <div key={locIdx} className="bg-zinc-50 dark:bg-zinc-800 p-2 rounded border border-zinc-200 dark:border-zinc-700 text-xs flex flex-col gap-1 min-w-[120px]">
-                                                            <div className="flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400">
+                                                        <div
+                                                            key={locIdx}
+                                                            className="bg-zinc-50 dark:bg-zinc-800 p-2 rounded border border-zinc-200 dark:border-zinc-700 text-xs flex flex-col gap-1 min-w-[120px] cursor-pointer hover:border-purple-400 hover:text-purple-600 transition-colors group"
+                                                            title="Click para ir a detalle"
+                                                            onClick={() => onNavigateToItem && onNavigateToItem(loc.labIndex, loc.softwareIndex)}
+                                                        >
+                                                            <div className="flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400 group-hover:text-purple-600 dark:group-hover:text-purple-400">
                                                                 <MapPin size={10} />
-                                                                <span>{loc.labCode}</span>
+                                                                <span className="group-hover:underline">{loc.labCode}</span>
                                                             </div>
-                                                            <div className="flex items-center justify-between gap-2 text-zinc-500">
+                                                            <div className="flex items-center justify-between gap-2 text-zinc-500 group-hover:text-zinc-700 dark:group-hover:text-zinc-300">
                                                                 <span className="bg-zinc-200 dark:bg-zinc-700 px-1 rounded text-[10px]">v{loc.version}</span>
                                                                 <span>x{loc.licenses}</span>
                                                             </div>
