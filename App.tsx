@@ -9,511 +9,550 @@ import { Settings as SettingsView } from './components/Views/Settings';
 import { GlobalEquipmentList } from './components/Views/GlobalEquipmentList';
 import { GlobalSoftwareList } from './components/Views/GlobalSoftwareList';
 import { GlobalPersonnelList } from './components/Views/GlobalPersonnelList';
+import { MaintenancePlan } from './components/Views/MaintenancePlan';
+import { MaintenanceLogs } from './components/Views/MaintenanceLogs';
 import { Modal } from './components/ui/Modal';
 import { Button } from './components/ui/Button';
 import { Input } from './components/ui/Input';
-import { LayoutDashboard, FlaskConical, Settings, Cpu, Save, Users } from 'lucide-react';
+import { LayoutDashboard, FlaskConical, Settings, Cpu, Save, Users, CalendarRange, ClipboardCheck } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [data, setData] = useState<UniversityData>(DEFAULT_DATA);
-  const [theme, setTheme] = useState<ThemeMode>('system');
-  const [currentView, setCurrentView] = useState<ViewType>('DASHBOARD');
-  const [selectedLabIndex, setSelectedLabIndex] = useState<number | null>(null);
-  
-  // File Name State
-  const [fileName, setFileName] = useState("data_lims");
-  
-  // Sidebar state
-  // true = Expanded (Desktop: 64, Mobile: Visible)
-  // false = Collapsed (Desktop: 20/Icons, Mobile: Hidden)
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  
-  // Modal State
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
-  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
-  const [tempFileName, setTempFileName] = useState("");
-  const [labToDelete, setLabToDelete] = useState<number | null>(null);
+    const [data, setData] = useState<UniversityData>(DEFAULT_DATA);
+    const [theme, setTheme] = useState<ThemeMode>('system');
+    const [currentView, setCurrentView] = useState<ViewType>('DASHBOARD');
+    const [selectedLabIndex, setSelectedLabIndex] = useState<number | null>(null);
 
-  // Theme Logic
-  useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove('light', 'dark');
-    
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      root.classList.add(systemTheme);
-    } else {
-      root.classList.add(theme);
-    }
-  }, [theme]);
+    // File Name State
+    const [fileName, setFileName] = useState("data_lims");
 
-  // Handle window resize to auto-collapse on mobile initially
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 768) {
-        // On mobile, default to hidden
-        setSidebarOpen(false);
-      } else {
-        // On desktop, default to open
-        setSidebarOpen(true);
-      }
-    };
-    
-    // Initial check
-    handleResize();
-  }, []);
+    // Sidebar state
+    // true = Expanded (Desktop: 64, Mobile: Visible)
+    // false = Collapsed (Desktop: 20/Icons, Mobile: Hidden)
+    const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Import JSON
-  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Update filename based on imported file (stripping extension)
-      const name = file.name.replace(/\.json$/i, "");
-      setFileName(name);
+    // Modal State
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+    const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+    const [tempFileName, setTempFileName] = useState("");
+    const [labToDelete, setLabToDelete] = useState<number | null>(null);
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const json = JSON.parse(e.target?.result as string);
-          // Basic validation could go here
-          setData(json);
-          console.log("Imported successfully");
-        } catch (error) {
-          console.error("Error parsing JSON", error);
+    // Theme Logic
+    useEffect(() => {
+        const root = window.document.documentElement;
+        root.classList.remove('light', 'dark');
+
+        if (theme === 'system') {
+            const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            root.classList.add(systemTheme);
+        } else {
+            root.classList.add(theme);
         }
-      };
-      reader.readAsText(file);
-    }
-  };
+    }, [theme]);
 
-  // Export JSON
-  const handleExport = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `${fileName}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-  };
-  
-  // Rename Logic
-  const openRenameModal = () => {
-      setTempFileName(fileName);
-      setIsRenameModalOpen(true);
-  };
-  
-  const saveFileName = () => {
-      if (tempFileName.trim()) {
-          setFileName(tempFileName.trim());
-          setIsRenameModalOpen(false);
-      }
-  };
+    // Handle window resize to auto-collapse on mobile initially
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 768) {
+                // On mobile, default to hidden
+                setSidebarOpen(false);
+            } else {
+                // On desktop, default to open
+                setSidebarOpen(true);
+            }
+        };
 
-  // Navigation Logic
-  const navigateTo = (view: ViewType) => {
-    setCurrentView(view);
-    setSelectedLabIndex(null);
-    // On mobile, auto close sidebar after navigation
-    if (window.innerWidth < 768) {
-        setSidebarOpen(false);
-    }
-  };
+        // Initial check
+        handleResize();
+    }, []);
 
-  // CRUD Operations
-  const handleAddLab = () => {
-    const newLab: Lab = {
-        infoAmbiente: {
-            "NUMERO DE LABORATORIO O TALLER": "NEW",
-            "CÓDIGO DE LABORATORIO O TALLER": `LA${(data.labs || []).length + 1}`,
-            "NOMBRE DEL LABORATORIO O TALLER": "Nuevo Laboratorio",
-            "TIPO DE LABORATORIO O TALLER": "Enseñanza",
-            "CODIGO PATRIMONIO AMBIENTE": "",
-            "REFERENCIA DE UBICACIÓN": "",
-            "PROGRAMA(S) QUE UTILIZAN EL LABORATORIO O TALLER": [],
-            "CANTIDAD DE PROGRAMA(S) QUE UTILIZAN EL LABORATORIO O TALLER": "0",
-            "SERVICIO DE INTERNET (SI/NO)": "Sí",
-            "ÁREA (m2)": "0",
-            "AFORO": "0",
-            "COMENTARIOS": "",
-            "RESPONSABLE DEL LABORATORIO O TALLER": { "NOMBRE": "", "NUMERO DE CONTACTO": "" },
-            "PERSONAL TÉCNICO": [],
-            "PERSONAL ASIGNADO PARA VERIFICAR LA CBC III": { "NOMBRE": "", "NUMERO DE CONTACTO": "" }
-        },
-        equipos: [],
-        software: []
-    };
-    setData(prev => ({ ...prev, labs: [...(prev.labs || []), newLab] }));
-    setSelectedLabIndex((data.labs || []).length); 
-    setCurrentView('LAB_DETAIL');
-  };
+    // Import JSON
+    const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            // Update filename based on imported file (stripping extension)
+            const name = file.name.replace(/\.json$/i, "");
+            setFileName(name);
 
-  const handleDuplicateLab = (index: number) => {
-    const labToCopy = (data.labs || [])[index];
-    if (labToCopy) {
-        const newLab = JSON.parse(JSON.stringify(labToCopy));
-        if (newLab.infoAmbiente) {
-            newLab.infoAmbiente["NOMBRE DEL LABORATORIO O TALLER"] = `${newLab.infoAmbiente["NOMBRE DEL LABORATORIO O TALLER"]} (Copia)`;
-            newLab.infoAmbiente["CÓDIGO DE LABORATORIO O TALLER"] = `${newLab.infoAmbiente["CÓDIGO DE LABORATORIO O TALLER"]}-CP`;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const json = JSON.parse(e.target?.result as string);
+                    // Basic validation could go here
+                    setData(json);
+                    console.log("Imported successfully");
+                } catch (error) {
+                    console.error("Error parsing JSON", error);
+                }
+            };
+            reader.readAsText(file);
         }
-        const newLabs = [...(data.labs || [])];
-        newLabs.splice(index + 1, 0, newLab);
-        setData(prev => ({ ...prev, labs: newLabs }));
-    }
-  };
+    };
 
-  const confirmDeleteLab = (index: number) => {
-    setLabToDelete(index);
-    setIsDeleteModalOpen(true);
-  };
+    // Export JSON
+    const handleExport = () => {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `${fileName}.json`);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    };
 
-  const executeDeleteLab = () => {
-    if (labToDelete !== null) {
-        setData(prev => ({
-            ...prev,
-            labs: (prev.labs || []).filter((_, i) => i !== labToDelete)
-        }));
-        setLabToDelete(null);
-        setIsDeleteModalOpen(false);
-    }
-  };
+    // Rename Logic
+    const openRenameModal = () => {
+        setTempFileName(fileName);
+        setIsRenameModalOpen(true);
+    };
 
-  const handleUpdateLab = (updatedLab: Lab) => {
-      if (selectedLabIndex !== null) {
-          const newLabs = [...(data.labs || [])];
-          newLabs[selectedLabIndex] = updatedLab;
-          setData(prev => ({ ...prev, labs: newLabs }));
-      }
-  };
-  
-  const handleMoveEquipment = (targetLabIndex: number, equipmentIndex: number, unitIndices?: number[]) => {
-      if (selectedLabIndex === null) return;
-      
-      setData(prev => {
-          const newData = JSON.parse(JSON.stringify(prev));
-          const sourceLab = newData.labs[selectedLabIndex];
-          const targetLab = newData.labs[targetLabIndex];
-          
-          if (!sourceLab || !targetLab || !sourceLab.equipos[equipmentIndex]) return prev;
+    const saveFileName = () => {
+        if (tempFileName.trim()) {
+            setFileName(tempFileName.trim());
+            setIsRenameModalOpen(false);
+        }
+    };
 
-          const sourceEquipment = sourceLab.equipos[equipmentIndex];
-          let unitsToMove: any[] = [];
+    // Navigation Logic
+    const navigateTo = (view: ViewType) => {
+        setCurrentView(view);
+        setSelectedLabIndex(null);
+        // On mobile, auto close sidebar after navigation
+        if (window.innerWidth < 768) {
+            setSidebarOpen(false);
+        }
+    };
 
-          if (!unitIndices || unitIndices.length === 0) {
-              unitsToMove = sourceEquipment.HojasDeVidaEquipos || [];
-              sourceLab.equipos.splice(equipmentIndex, 1);
-          } else {
-              unitsToMove = (sourceEquipment.HojasDeVidaEquipos || []).filter((_: any, i: number) => unitIndices.includes(i));
-              const unitsToKeep = (sourceEquipment.HojasDeVidaEquipos || []).filter((_: any, i: number) => !unitIndices.includes(i));
+    // CRUD Operations
+    const handleAddLab = () => {
+        const newLab: Lab = {
+            infoAmbiente: {
+                "NUMERO DE LABORATORIO O TALLER": "NEW",
+                "CÓDIGO DE LABORATORIO O TALLER": `LA${(data.labs || []).length + 1}`,
+                "NOMBRE DEL LABORATORIO O TALLER": "Nuevo Laboratorio",
+                "TIPO DE LABORATORIO O TALLER": "Enseñanza",
+                "CODIGO PATRIMONIO AMBIENTE": "",
+                "REFERENCIA DE UBICACIÓN": "",
+                "PROGRAMA(S) QUE UTILIZAN EL LABORATORIO O TALLER": [],
+                "CANTIDAD DE PROGRAMA(S) QUE UTILIZAN EL LABORATORIO O TALLER": "0",
+                "SERVICIO DE INTERNET (SI/NO)": "Sí",
+                "ÁREA (m2)": "0",
+                "AFORO": "0",
+                "COMENTARIOS": "",
+                "RESPONSABLE DEL LABORATORIO O TALLER": { "NOMBRE": "", "NUMERO DE CONTACTO": "" },
+                "PERSONAL TÉCNICO": [],
+                "PERSONAL ASIGNADO PARA VERIFICAR LA CBC III": { "NOMBRE": "", "NUMERO DE CONTACTO": "" }
+            },
+            equipos: [],
+            software: []
+        };
+        setData(prev => ({ ...prev, labs: [...(prev.labs || []), newLab] }));
+        setSelectedLabIndex((data.labs || []).length);
+        setCurrentView('LAB_DETAIL');
+    };
 
-              sourceEquipment.HojasDeVidaEquipos = unitsToKeep;
-              sourceEquipment["Nº DE EQUIPOS"] = unitsToKeep.length.toString();
-          }
-              
-          if (!targetLab.equipos) targetLab.equipos = [];
+    const handleDuplicateLab = (index: number) => {
+        const labToCopy = (data.labs || [])[index];
+        if (labToCopy) {
+            const newLab = JSON.parse(JSON.stringify(labToCopy));
+            if (newLab.infoAmbiente) {
+                newLab.infoAmbiente["NOMBRE DEL LABORATORIO O TALLER"] = `${newLab.infoAmbiente["NOMBRE DEL LABORATORIO O TALLER"]} (Copia)`;
+                newLab.infoAmbiente["CÓDIGO DE LABORATORIO O TALLER"] = `${newLab.infoAmbiente["CÓDIGO DE LABORATORIO O TALLER"]}-CP`;
+            }
+            const newLabs = [...(data.labs || [])];
+            newLabs.splice(index + 1, 0, newLab);
+            setData(prev => ({ ...prev, labs: newLabs }));
+        }
+    };
 
-          const sourceName = (sourceEquipment["NOMBRE DEL EQUIPO"] || "").trim().toUpperCase();
-          const sourceBrand = (sourceEquipment.infoEquipo?.Marca || "").trim().toUpperCase();
-          const sourceModel = (sourceEquipment.infoEquipo?.Modelo || "").trim().toUpperCase();
+    const confirmDeleteLab = (index: number) => {
+        setLabToDelete(index);
+        setIsDeleteModalOpen(true);
+    };
 
-          const matchingTargetIndex = targetLab.equipos.findIndex((targetEq: any) => {
-              const tName = (targetEq["NOMBRE DEL EQUIPO"] || "").trim().toUpperCase();
-              const tBrand = (targetEq.infoEquipo?.Marca || "").trim().toUpperCase();
-              const tModel = (targetEq.infoEquipo?.Modelo || "").trim().toUpperCase();
-              return tName === sourceName && tBrand === sourceBrand && tModel === sourceModel;
-          });
+    const executeDeleteLab = () => {
+        if (labToDelete !== null) {
+            setData(prev => ({
+                ...prev,
+                labs: (prev.labs || []).filter((_, i) => i !== labToDelete)
+            }));
+            setLabToDelete(null);
+            setIsDeleteModalOpen(false);
+        }
+    };
 
-          if (matchingTargetIndex !== -1) {
-              const targetEq = targetLab.equipos[matchingTargetIndex];
-              targetEq.HojasDeVidaEquipos = [...(targetEq.HojasDeVidaEquipos || []), ...unitsToMove];
-              targetEq["Nº DE EQUIPOS"] = targetEq.HojasDeVidaEquipos.length.toString();
-          } else {
-              const newEquipmentEntry = JSON.parse(JSON.stringify(sourceEquipment));
-              newEquipmentEntry.HojasDeVidaEquipos = unitsToMove;
-              newEquipmentEntry["Nº DE EQUIPOS"] = unitsToMove.length.toString();
-              targetLab.equipos.push(newEquipmentEntry);
-          }
-          return newData;
-      });
-  };
-  
-  const handleMoveSoftware = (targetLabIndex: number, softwareIndex: number) => {
-      if (selectedLabIndex === null) return;
-      
-      setData(prev => {
-          const newData = JSON.parse(JSON.stringify(prev));
-          const sourceLab = newData.labs[selectedLabIndex];
-          const targetLab = newData.labs[targetLabIndex];
-          
-          if (!sourceLab || !targetLab || !sourceLab.software[softwareIndex]) return prev;
-          
-          const software = sourceLab.software[softwareIndex];
-          
-          sourceLab.software.splice(softwareIndex, 1);
-          
-          if (!targetLab.software) targetLab.software = [];
-          targetLab.software.push(software);
-          
-          return newData;
-      });
-  };
-  
-  const handleUpdateSettings = (newData: UniversityData) => {
-    setData(newData);
-  };
+    const handleUpdateLab = (updatedLab: Lab) => {
+        if (selectedLabIndex !== null) {
+            const newLabs = [...(data.labs || [])];
+            newLabs[selectedLabIndex] = updatedLab;
+            setData(prev => ({ ...prev, labs: newLabs }));
+        }
+    };
+
+    const handleMoveEquipment = (targetLabIndex: number, equipmentIndex: number, unitIndices?: number[]) => {
+        if (selectedLabIndex === null) return;
+
+        setData(prev => {
+            const newData = JSON.parse(JSON.stringify(prev));
+            const sourceLab = newData.labs[selectedLabIndex];
+            const targetLab = newData.labs[targetLabIndex];
+
+            if (!sourceLab || !targetLab || !sourceLab.equipos[equipmentIndex]) return prev;
+
+            const sourceEquipment = sourceLab.equipos[equipmentIndex];
+            let unitsToMove: any[] = [];
+
+            // 1. Determine which units to move and update the source lab
+            if (!unitIndices || unitIndices.length === 0) {
+                // CASE: Move ALL units (The entire equipment entry)
+                unitsToMove = sourceEquipment.HojasDeVidaEquipos || [];
+                // Remove the equipment entry from source completely
+                sourceLab.equipos.splice(equipmentIndex, 1);
+            } else {
+                // CASE: Move PARTIAL units
+                unitsToMove = (sourceEquipment.HojasDeVidaEquipos || []).filter((_: any, i: number) => unitIndices.includes(i));
+                const unitsToKeep = (sourceEquipment.HojasDeVidaEquipos || []).filter((_: any, i: number) => !unitIndices.includes(i));
+
+                // Update source equipment to only keep the remaining units
+                sourceEquipment.HojasDeVidaEquipos = unitsToKeep;
+                sourceEquipment["Nº DE EQUIPOS"] = unitsToKeep.length.toString();
+            }
+
+            // 2. Add to Target Lab
+            if (!targetLab.equipos) targetLab.equipos = [];
+
+            // Check if an equipment with the same Name, Brand, and Model exists in the target
+            const sourceName = (sourceEquipment["NOMBRE DEL EQUIPO"] || "").trim().toUpperCase();
+            const sourceBrand = (sourceEquipment.infoEquipo?.Marca || "").trim().toUpperCase();
+            const sourceModel = (sourceEquipment.infoEquipo?.Modelo || "").trim().toUpperCase();
+
+            const matchingTargetIndex = targetLab.equipos.findIndex((targetEq: any) => {
+                const tName = (targetEq["NOMBRE DEL EQUIPO"] || "").trim().toUpperCase();
+                const tBrand = (targetEq.infoEquipo?.Marca || "").trim().toUpperCase();
+                const tModel = (targetEq.infoEquipo?.Modelo || "").trim().toUpperCase();
+                return tName === sourceName && tBrand === sourceBrand && tModel === sourceModel;
+            });
+
+            if (matchingTargetIndex !== -1) {
+                // MATCH FOUND: Merge units into existing equipment
+                const targetEq = targetLab.equipos[matchingTargetIndex];
+                targetEq.HojasDeVidaEquipos = [...(targetEq.HojasDeVidaEquipos || []), ...unitsToMove];
+                // Update count
+                targetEq["Nº DE EQUIPOS"] = targetEq.HojasDeVidaEquipos.length.toString();
+            } else {
+                // NO MATCH: Create new equipment entry
+                // We clone the source equipment structure (metadata), but ensure we set the correct units
+                const newEquipmentEntry = JSON.parse(JSON.stringify(sourceEquipment));
+                newEquipmentEntry.HojasDeVidaEquipos = unitsToMove;
+                newEquipmentEntry["Nº DE EQUIPOS"] = unitsToMove.length.toString();
+
+                targetLab.equipos.push(newEquipmentEntry);
+            }
+
+            return newData;
+        });
+    };
+
+    const handleMoveSoftware = (targetLabIndex: number, softwareIndex: number) => {
+        if (selectedLabIndex === null) return;
+
+        setData(prev => {
+            const newData = JSON.parse(JSON.stringify(prev));
+            const sourceLab = newData.labs[selectedLabIndex];
+            const targetLab = newData.labs[targetLabIndex];
+
+            if (!sourceLab || !targetLab || !sourceLab.software[softwareIndex]) return prev;
+
+            const software = sourceLab.software[softwareIndex];
+
+            sourceLab.software.splice(softwareIndex, 1);
+
+            if (!targetLab.software) targetLab.software = [];
+            targetLab.software.push(software);
+
+            return newData;
+        });
+    };
+
+    const handleUpdateSettings = (newData: UniversityData) => {
+        setData(newData);
+    };
 
 
-  return (
-    <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 overflow-hidden font-sans">
-      
-      {/* Mobile Backdrop for Sidebar */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden animate-in fade-in duration-200"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+    return (
+        <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 overflow-hidden font-sans">
 
-      {/* Sidebar */}
-      <aside 
-        className={`
-            fixed md:static inset-y-0 left-0 z-50 h-full bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300
-            ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 w-64 md:w-20'}
-        `}
-      >
-         {/* Clickable Header for Toggle */}
-         <div 
-            className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-center h-16 shrink-0 overflow-hidden cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors group"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            title="Mostrar/Ocultar Barra Lateral"
-         >
-             <div className={`transition-all duration-300 flex items-center ${sidebarOpen ? 'gap-2' : ''}`}>
-                 <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center text-white font-bold shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                    N
-                 </div>
-                 <div className={`text-xl font-bold tracking-tight text-blue-600 dark:text-blue-400 overflow-hidden whitespace-nowrap transition-all duration-300 ${sidebarOpen ? 'w-auto opacity-100' : 'w-0 opacity-0'}`}>
-                    NiceLIMS
-                 </div>
-             </div>
-         </div>
+            {/* Mobile Backdrop for Sidebar */}
+            {sidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden animate-in fade-in duration-200"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
 
-         <nav className="flex-1 p-4 space-y-2 overflow-y-auto overflow-x-hidden">
-            <SidebarButton 
-                active={currentView === 'DASHBOARD'} 
-                onClick={() => navigateTo('DASHBOARD')} 
-                icon={<LayoutDashboard size={20} />} 
-                label="Dashboard" 
-                sidebarOpen={sidebarOpen}
-            />
-            <SidebarButton 
-                active={currentView === 'LABS_LIST' || currentView === 'LAB_DETAIL'} 
-                onClick={() => navigateTo('LABS_LIST')} 
-                icon={<FlaskConical size={20} />} 
-                label="Laboratorios" 
-                sidebarOpen={sidebarOpen}
-            />
-            
-            <SidebarSectionTitle label="Inventario Global" sidebarOpen={sidebarOpen} />
-            
-            <SidebarButton 
-                active={currentView === 'ALL_EQUIPMENT'} 
-                onClick={() => navigateTo('ALL_EQUIPMENT')} 
-                icon={<Cpu size={20} />} 
-                label="Equipos Globales" 
-                sidebarOpen={sidebarOpen}
-            />
-            <SidebarButton 
-                active={currentView === 'ALL_SOFTWARE'} 
-                onClick={() => navigateTo('ALL_SOFTWARE')} 
-                icon={<Save size={20} />} 
-                label="Software Global" 
-                sidebarOpen={sidebarOpen}
-            />
-            <SidebarButton 
-                active={currentView === 'ALL_PERSONNEL'} 
-                onClick={() => navigateTo('ALL_PERSONNEL')} 
-                icon={<Users size={20} />} 
-                label="Personal Global" 
-                sidebarOpen={sidebarOpen}
-            />
+            {/* Sidebar */}
+            <aside
+                className={`fixed md:static inset-y-0 left-0 z-50 h-full bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-all duration-300
+${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 w-64 md:w-20'}
+`}
+            >
+                {/* Clickable Header for Toggle */}
+                <div
+                    className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-center h-16 shrink-0 overflow-hidden cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors group"
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                    title="Mostrar/Ocultar Barra Lateral"
+                >
+                    <div className={`transition-all duration-300 flex items-center ${sidebarOpen ? 'gap-2' : ''}`}>
+                        <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center text-white font-bold shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                            N
+                        </div>
+                        <div className={`text-xl font-bold tracking-tight text-blue-600 dark:text-blue-400 overflow-hidden whitespace-nowrap transition-all duration-300 ${sidebarOpen ? 'w-auto opacity-100' : 'w-0 opacity-0'}`}>
+                            NiceLIMS
+                        </div>
+                    </div>
+                </div>
 
-            <SidebarSectionTitle label="Sistema" sidebarOpen={sidebarOpen} />
-
-            <SidebarButton 
-                active={currentView === 'SETTINGS'} 
-                onClick={() => navigateTo('SETTINGS')} 
-                icon={<Settings size={20} />} 
-                label="Configuración" 
-                sidebarOpen={sidebarOpen}
-            />
-         </nav>
-         
-         <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 shrink-0 overflow-hidden h-16 flex items-center">
-             <div className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0 md:hidden'}`}>
-                 <div className="text-xs text-zinc-500 whitespace-nowrap">
-                     <p className="font-semibold truncate max-w-[12rem]">{data["ABREVIATURA UNIVERSIDAD"] || "UNSA"}</p>
-                     <p className="truncate max-w-[12rem]">{data["PROGRAMA DE ESTUDIOS"] || "SISTEMA"}</p>
-                 </div>
-             </div>
-         </div>
-      </aside>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 relative h-full">
-        <MenuBar 
-          fileName={fileName}
-          onRename={openRenameModal}
-          onImport={handleImport} 
-          onExport={handleExport} 
-          theme={theme} 
-          setTheme={setTheme}
-          toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-          sidebarOpen={sidebarOpen}
-          onNavigate={navigateTo}
-          onAddLab={handleAddLab}
-          onShowAbout={() => setIsAboutModalOpen(true)}
-        />
-
-        <main className="flex-1 overflow-auto p-4 md:p-8">
-            <div className="max-w-7xl mx-auto">
-                {currentView === 'DASHBOARD' && (
-                    <Dashboard data={data} />
-                )}
-
-                {currentView === 'LABS_LIST' && (
-                    <LabList 
-                        labs={data.labs || []} 
-                        onSelectLab={(idx) => {
-                            setSelectedLabIndex(idx);
-                            setCurrentView('LAB_DETAIL');
-                        }}
-                        onDeleteLab={confirmDeleteLab}
-                        onDuplicateLab={handleDuplicateLab}
-                        onAddLab={handleAddLab}
+                <nav className="flex-1 p-4 space-y-2 overflow-y-auto overflow-x-hidden">
+                    <SidebarButton
+                        active={currentView === 'DASHBOARD'}
+                        onClick={() => navigateTo('DASHBOARD')}
+                        icon={<LayoutDashboard size={20} />}
+                        label="Dashboard"
+                        sidebarOpen={sidebarOpen}
                     />
-                )}
-
-                {currentView === 'LAB_DETAIL' && selectedLabIndex !== null && (data.labs || [])[selectedLabIndex] && (
-                    <LabDetail 
-                        lab={(data.labs || [])[selectedLabIndex]} 
-                        allLabs={data.labs || []}
-                        currentLabIndex={selectedLabIndex}
-                        onBack={() => setCurrentView('LABS_LIST')}
-                        onUpdate={handleUpdateLab}
-                        onMoveEquipment={handleMoveEquipment}
-                        onMoveSoftware={handleMoveSoftware}
+                    <SidebarButton
+                        active={currentView === 'LABS_LIST' || currentView === 'LAB_DETAIL'}
+                        onClick={() => navigateTo('LABS_LIST')}
+                        icon={<FlaskConical size={20} />}
+                        label="Laboratorios"
+                        sidebarOpen={sidebarOpen}
                     />
-                )}
-                
-                {currentView === 'ALL_EQUIPMENT' && (
-                    <GlobalEquipmentList labs={data.labs || []} />
-                )}
 
-                {currentView === 'ALL_SOFTWARE' && (
-                    <GlobalSoftwareList labs={data.labs || []} />
-                )}
+                    <SidebarSectionTitle label="Mantenimiento" sidebarOpen={sidebarOpen} />
 
-                {currentView === 'ALL_PERSONNEL' && (
-                    <GlobalPersonnelList data={data} />
-                )}
+                    <SidebarButton
+                        active={currentView === 'MAINTENANCE_PLAN'}
+                        onClick={() => navigateTo('MAINTENANCE_PLAN')}
+                        icon={<CalendarRange size={20} />}
+                        label="Planificación"
+                        sidebarOpen={sidebarOpen}
+                    />
+                    <SidebarButton
+                        active={currentView === 'MAINTENANCE_LOGS'}
+                        onClick={() => navigateTo('MAINTENANCE_LOGS')}
+                        icon={<ClipboardCheck size={20} />}
+                        label="Actividades (Logs)"
+                        sidebarOpen={sidebarOpen}
+                    />
 
-                {currentView === 'SETTINGS' && (
-                   <SettingsView 
-                      data={data}
-                      onUpdate={handleUpdateSettings}
-                   />
-                )}
+                    <SidebarSectionTitle label="Inventario Global" sidebarOpen={sidebarOpen} />
+
+                    <SidebarButton
+                        active={currentView === 'ALL_EQUIPMENT'}
+                        onClick={() => navigateTo('ALL_EQUIPMENT')}
+                        icon={<Cpu size={20} />}
+                        label="Equipos Globales"
+                        sidebarOpen={sidebarOpen}
+                    />
+                    <SidebarButton
+                        active={currentView === 'ALL_SOFTWARE'}
+                        onClick={() => navigateTo('ALL_SOFTWARE')}
+                        icon={<Save size={20} />}
+                        label="Software Global"
+                        sidebarOpen={sidebarOpen}
+                    />
+                    <SidebarButton
+                        active={currentView === 'ALL_PERSONNEL'}
+                        onClick={() => navigateTo('ALL_PERSONNEL')}
+                        icon={<Users size={20} />}
+                        label="Personal Global"
+                        sidebarOpen={sidebarOpen}
+                    />
+
+                    <SidebarSectionTitle label="Sistema" sidebarOpen={sidebarOpen} />
+
+                    <SidebarButton
+                        active={currentView === 'SETTINGS'}
+                        onClick={() => navigateTo('SETTINGS')}
+                        icon={<Settings size={20} />}
+                        label="Configuración"
+                        sidebarOpen={sidebarOpen}
+                    />
+                </nav>
+
+                <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 shrink-0 overflow-hidden h-16 flex items-center">
+                    <div className={`transition-all duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0 md:hidden'}`}>
+                        <div className="text-xs text-zinc-500 whitespace-nowrap">
+                            <p className="font-semibold truncate max-w-[12rem]">{data["ABREVIATURA UNIVERSIDAD"] || "UNSA"}</p>
+                            <p className="truncate max-w-[12rem]">{data["PROGRAMA DE ESTUDIOS"] || "SISTEMA"}</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col min-w-0 relative h-full">
+                <MenuBar
+                    fileName={fileName}
+                    onRename={openRenameModal}
+                    onImport={handleImport}
+                    onExport={handleExport}
+                    theme={theme}
+                    setTheme={setTheme}
+                    toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                    sidebarOpen={sidebarOpen}
+                    onNavigate={navigateTo}
+                    onAddLab={handleAddLab}
+                    onShowAbout={() => setIsAboutModalOpen(true)}
+                />
+
+                <main className="flex-1 overflow-auto p-4 md:p-8">
+                    <div className="max-w-7xl mx-auto">
+                        {currentView === 'DASHBOARD' && (
+                            <Dashboard data={data} />
+                        )}
+
+                        {currentView === 'LABS_LIST' && (
+                            <LabList
+                                labs={data.labs || []}
+                                onSelectLab={(idx) => {
+                                    setSelectedLabIndex(idx);
+                                    setCurrentView('LAB_DETAIL');
+                                }}
+                                onDeleteLab={confirmDeleteLab}
+                                onDuplicateLab={handleDuplicateLab}
+                                onAddLab={handleAddLab}
+                            />
+                        )}
+
+                        {currentView === 'LAB_DETAIL' && selectedLabIndex !== null && (data.labs || [])[selectedLabIndex] && (
+                            <LabDetail
+                                lab={(data.labs || [])[selectedLabIndex]}
+                                allLabs={data.labs || []}
+                                currentLabIndex={selectedLabIndex}
+                                onBack={() => setCurrentView('LABS_LIST')}
+                                onUpdate={handleUpdateLab}
+                                onMoveEquipment={handleMoveEquipment}
+                                onMoveSoftware={handleMoveSoftware}
+                            />
+                        )}
+
+                        {currentView === 'MAINTENANCE_PLAN' && (
+                            <MaintenancePlan labs={data.labs || []} />
+                        )}
+
+                        {currentView === 'MAINTENANCE_LOGS' && (
+                            <MaintenanceLogs labs={data.labs || []} />
+                        )}
+
+                        {currentView === 'ALL_EQUIPMENT' && (
+                            <GlobalEquipmentList labs={data.labs || []} />
+                        )}
+
+                        {currentView === 'ALL_SOFTWARE' && (
+                            <GlobalSoftwareList labs={data.labs || []} />
+                        )}
+
+                        {currentView === 'ALL_PERSONNEL' && (
+                            <GlobalPersonnelList data={data} />
+                        )}
+
+                        {currentView === 'SETTINGS' && (
+                            <SettingsView
+                                data={data}
+                                onUpdate={handleUpdateSettings}
+                            />
+                        )}
+                    </div>
+                </main>
             </div>
-        </main>
-      </div>
 
-      <Modal 
-        isOpen={isDeleteModalOpen} 
-        onClose={() => setIsDeleteModalOpen(false)}
-        title="Eliminar Laboratorio"
-        footer={
-            <>
-                <Button variant="ghost" onClick={() => setIsDeleteModalOpen(false)}>Cancelar</Button>
-                <Button variant="danger" onClick={executeDeleteLab}>Eliminar</Button>
-            </>
-        }
-      >
-        <p>¿Estás seguro de que deseas eliminar este laboratorio? Esta acción no se puede deshacer.</p>
-      </Modal>
+            <Modal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                title="Eliminar Laboratorio"
+                footer={
+                    <>
+                        <Button variant="ghost" onClick={() => setIsDeleteModalOpen(false)}>Cancelar</Button>
+                        <Button variant="danger" onClick={executeDeleteLab}>Eliminar</Button>
+                    </>
+                }
+            >
+                <p>¿Estás seguro de que deseas eliminar este laboratorio? Esta acción no se puede deshacer.</p>
+            </Modal>
 
-      <Modal
-        isOpen={isRenameModalOpen}
-        onClose={() => setIsRenameModalOpen(false)}
-        title="Renombrar Archivo"
-        footer={
-            <>
-                <Button variant="ghost" onClick={() => setIsRenameModalOpen(false)}>Cancelar</Button>
-                <Button onClick={saveFileName}>Guardar Nombre</Button>
-            </>
-        }
-      >
-         <div className="space-y-4">
-             <p className="text-sm text-zinc-500">Ingrese el nuevo nombre para el archivo (sin extensión):</p>
-             <Input 
-                value={tempFileName}
-                onChange={(e) => setTempFileName(e.target.value)}
-                placeholder="Nombre del archivo"
-                autoFocus
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter') saveFileName();
-                }}
-             />
-         </div>
-      </Modal>
+            <Modal
+                isOpen={isRenameModalOpen}
+                onClose={() => setIsRenameModalOpen(false)}
+                title="Renombrar Archivo"
+                footer={
+                    <>
+                        <Button variant="ghost" onClick={() => setIsRenameModalOpen(false)}>Cancelar</Button>
+                        <Button onClick={saveFileName}>Guardar Nombre</Button>
+                    </>
+                }
+            >
+                <div className="space-y-4">
+                    <p className="text-sm text-zinc-500">Ingrese el nuevo nombre para el archivo (sin extensión):</p>
+                    <Input
+                        value={tempFileName}
+                        onChange={(e) => setTempFileName(e.target.value)}
+                        placeholder="Nombre del archivo"
+                        autoFocus
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveFileName();
+                        }}
+                    />
+                </div>
+            </Modal>
 
-      <Modal 
-        isOpen={isAboutModalOpen} 
-        onClose={() => setIsAboutModalOpen(false)}
-        title="Acerca de NiceLIMS"
-        footer={
-            <Button variant="primary" onClick={() => setIsAboutModalOpen(false)}>Entendido</Button>
-        }
-      >
-        <div className="text-center space-y-4">
-           <div className="w-16 h-16 bg-blue-600 rounded-xl mx-auto flex items-center justify-center text-white text-2xl font-bold">N</div>
-           <div>
-               <h4 className="font-bold text-lg">NiceLIMS v1.0.0</h4>
-               <p className="text-sm text-zinc-500">Sistema de Gestión de Laboratorios</p>
-           </div>
-           <p className="text-sm">
-               Aplicación minimalista para la gestión, inventario y mantenimiento de laboratorios universitarios. 
-               Diseñado para ser rápido, eficiente y fácil de usar.
-           </p>
-           <div className="pt-2 text-xs text-zinc-400">
-               &copy; {new Date().getFullYear()} NiceLIMS. Todos los derechos reservados.
-           </div>
+            <Modal
+                isOpen={isAboutModalOpen}
+                onClose={() => setIsAboutModalOpen(false)}
+                title="Acerca de NiceLIMS"
+                footer={
+                    <Button variant="primary" onClick={() => setIsAboutModalOpen(false)}>Entendido</Button>
+                }
+            >
+                <div className="text-center space-y-4">
+                    <div className="w-16 h-16 bg-blue-600 rounded-xl mx-auto flex items-center justify-center text-white text-2xl font-bold">N</div>
+                    <div>
+                        <h4 className="font-bold text-lg">NiceLIMS v1.0.0</h4>
+                        <p className="text-sm text-zinc-500">Sistema de Gestión de Laboratorios</p>
+                    </div>
+                    <p className="text-sm">
+                        Aplicación minimalista para la gestión, inventario y mantenimiento de laboratorios universitarios.
+                        Diseñado para ser rápido, eficiente y fácil de usar.
+                    </p>
+                    <div className="pt-2 text-xs text-zinc-400">
+                        &copy; {new Date().getFullYear()} NiceLIMS. Todos los derechos reservados.
+                    </div>
+                </div>
+            </Modal>
         </div>
-      </Modal>
-    </div>
-  );
+    );
 };
 
 // Helper Components for Sidebar
 const SidebarButton = ({ active, onClick, icon, label, sidebarOpen }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string, sidebarOpen: boolean }) => (
-    <button 
+    <button
         onClick={onClick}
         className={`
-            flex items-center w-full px-3 py-2 rounded-md transition-all duration-200 group relative
-            ${active ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'}
-            ${!sidebarOpen ? 'justify-center' : ''}
-        `}
+flex items-center w-full px-3 py-2 rounded-md transition-all duration-200 group relative
+${active ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'}
+${!sidebarOpen ? 'justify-center' : ''}
+`}
         title={!sidebarOpen ? label : undefined}
     >
         <span className="shrink-0">{icon}</span>
-        
+
         <span className={`
-            whitespace-nowrap overflow-hidden transition-all duration-300 origin-left
-            ${sidebarOpen ? 'w-auto opacity-100 ml-3' : 'w-0 opacity-0 ml-0'}
-        `}>
+whitespace-nowrap overflow-hidden transition-all duration-300 origin-left
+${sidebarOpen ? 'w-auto opacity-100 ml-3' : 'w-0 opacity-0 ml-0'}
+`}>
             {label}
         </span>
-        
+
         {/* Tooltip for collapsed mode (desktop) */}
         {!sidebarOpen && (
             <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-zinc-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap hidden md:block">
@@ -525,9 +564,9 @@ const SidebarButton = ({ active, onClick, icon, label, sidebarOpen }: { active: 
 
 const SidebarSectionTitle = ({ label, sidebarOpen }: { label: string, sidebarOpen: boolean }) => (
     <div className={`
-        pt-4 pb-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider px-3 transition-all duration-300 overflow-hidden whitespace-nowrap
-        ${sidebarOpen ? 'opacity-100' : 'opacity-0 h-0 pt-0 pb-0'}
-    `}>
+pt-4 pb-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider px-3 transition-all duration-300 overflow-hidden whitespace-nowrap
+${sidebarOpen ? 'opacity-100' : 'opacity-0 h-0 pt-0 pb-0'}
+`}>
         {label}
     </div>
 );

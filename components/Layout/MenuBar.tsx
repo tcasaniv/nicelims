@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Download, Moon, Sun, Monitor, Menu, Plus, Info, Settings, PanelLeft, ChevronDown, ChevronRight, X, FileJson, Layout, HardDrive, Users, Cpu, FilePenLine } from 'lucide-react';
+import { Download, Moon, Sun, Monitor, Menu, Plus, Info, Settings, PanelLeft, ChevronDown, ChevronRight, X, FileJson, Layout, HardDrive, Users, Cpu, FilePenLine, CalendarRange, ClipboardCheck } from 'lucide-react';
 import { ThemeMode, ViewType } from '../../types';
 
 interface MenuBarProps {
@@ -76,6 +76,8 @@ export const MenuBar: React.FC<MenuBarProps> = ({
         { label: 'Equipos Globales', action: () => onNavigate('ALL_EQUIPMENT'), icon: <Cpu size={14} /> },
         { label: 'Software Global', action: () => onNavigate('ALL_SOFTWARE'), icon: <HardDrive size={14} /> },
         { label: 'Personal Global', action: () => onNavigate('ALL_PERSONNEL'), icon: <Users size={14} /> },
+        { label: 'Plan de Mantenimiento', action: () => onNavigate('MAINTENANCE_PLAN'), icon: <CalendarRange size={14} /> },
+        { label: 'Bitácora de Actividades', action: () => onNavigate('MAINTENANCE_LOGS'), icon: <ClipboardCheck size={14} /> },
       ]
     },
     {
@@ -121,8 +123,8 @@ export const MenuBar: React.FC<MenuBarProps> = ({
               <button
                 onClick={() => setActiveDesktopMenu(activeDesktopMenu === menu.label ? null : menu.label)}
                 className={`px-3 py-1 text-sm rounded-md transition-colors ${activeDesktopMenu === menu.label
-                    ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-200'
+                  ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-200'
                   }`}
               >
                 {menu.label}
