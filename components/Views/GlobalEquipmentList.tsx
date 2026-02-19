@@ -1,14 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { Lab } from '../../types';
 import { Card, CardContent } from '../ui/Card';
-import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { Cpu, MapPin, Search, Filter, ArrowUpDown, X, Box, ClipboardList, Calendar, Tag, ChevronUp, ChevronDown } from 'lucide-react';
+import { Cpu, MapPin, Box, ClipboardList, Calendar, Tag, ChevronUp, ChevronDown, ListFilter } from 'lucide-react';
 
 interface GlobalEquipmentListProps {
   labs: Lab[];
 }
 
+// Grouped View Interface
 interface EquipmentGroup {
     name: string;
     totalQuantity: number;
@@ -36,18 +36,20 @@ interface FlatUnit {
 }
 
 type Tab = 'TYPES' | 'UNITS';
-type TypeSortOption = 'NAME_ASC' | 'NAME_DESC' | 'QTY_ASC' | 'QTY_DESC';
 
 export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs }) => {
   const [activeTab, setActiveTab] = useState<Tab>('TYPES');
   
   // --- STATE FOR TAB 1 (TYPES) ---
-  const [typeSearch, setTypeSearch] = useState("");
-  const [typeFilterLab, setTypeFilterLab] = useState("");
-  const [typeSort, setTypeSort] = useState<TypeSortOption>('NAME_ASC');
+  const [typeFilters, setTypeFilters] = useState({
+      name: "",
+      qty: "",
+      units: "",
+      distribution: ""
+  });
+  const [typeSortConfig, setTypeSortConfig] = useState<{ key: keyof EquipmentGroup | 'distribution'; direction: 'asc' | 'desc' } | null>(null);
 
   // --- STATE FOR TAB 2 (UNITS) ---
-  // Column Filters
   const [unitFilters, setUnitFilters] = useState({
       code: "",
       equipment: "",
@@ -55,10 +57,9 @@ export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs }
       location: "",
       date: ""
   });
-  // Column Sorting
   const [unitSortConfig, setUnitSortConfig] = useState<{ key: keyof FlatUnit | 'lab'; direction: 'asc' | 'desc' } | null>(null);
 
-  // Helper to extract unique labs for filter dropdown
+  // Helper to extract unique labs for filter dropdown (Used in Units tab)
   const availableLabs = useMemo(() => {
       const unique = new Map<string, string>();
       labs.forEach(l => {
@@ -76,8 +77,6 @@ export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs }
     const grouped = labs.reduce((acc, lab) => {
         const labCode = lab.infoAmbiente?.["CÓDIGO DE LABORATORIO O TALLER"] || "S/C";
         
-        if (typeFilterLab && labCode !== typeFilterLab) return acc;
-
         (lab.equipos || []).forEach(eq => {
             const rawName = eq["NOMBRE DEL EQUIPO"] || "Desconocido";
             const nameKey = rawName.trim().toUpperCase();
@@ -109,12 +108,22 @@ export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs }
 
     let list = Object.values(grouped);
 
-    // 2. Search Logic
-    if (typeSearch.trim()) {
-        const lower = typeSearch.toLowerCase();
-        list = list.filter(item => 
-            item.name.toLowerCase().includes(lower) ||
-            item.locations.some(loc => 
+    // 2. Filter Logic (Column Based)
+    if (typeFilters.name) {
+        const lower = typeFilters.name.toLowerCase();
+        list = list.filter(i => i.name.toLowerCase().includes(lower));
+    }
+    if (typeFilters.qty) {
+        list = list.filter(i => i.totalQuantity.toString().includes(typeFilters.qty));
+    }
+    if (typeFilters.units) {
+        list = list.filter(i => i.totalUnits.toString().includes(typeFilters.units));
+    }
+    if (typeFilters.distribution) {
+        const lower = typeFilters.distribution.toLowerCase();
+        list = list.filter(i => 
+            i.locations.some(loc => 
+                loc.labCode.toLowerCase().includes(lower) || 
                 loc.brand.toLowerCase().includes(lower) || 
                 loc.model.toLowerCase().includes(lower)
             )
@@ -122,16 +131,29 @@ export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs }
     }
 
     // 3. Sort Logic
-    list.sort((a, b) => {
-        if (typeSort === 'NAME_ASC') return a.name.localeCompare(b.name);
-        if (typeSort === 'NAME_DESC') return b.name.localeCompare(a.name);
-        if (typeSort === 'QTY_ASC') return a.totalQuantity - b.totalQuantity;
-        if (typeSort === 'QTY_DESC') return b.totalQuantity - a.totalQuantity;
-        return 0;
-    });
+    if (typeSortConfig) {
+        list.sort((a, b) => {
+            let valA: any = "";
+            let valB: any = "";
+
+            switch(typeSortConfig.key) {
+                case 'name': valA = a.name; valB = b.name; break;
+                case 'totalQuantity': valA = a.totalQuantity; valB = b.totalQuantity; break;
+                case 'totalUnits': valA = a.totalUnits; valB = b.totalUnits; break;
+                case 'distribution': valA = a.locations.length; valB = b.locations.length; break; // Sort by number of locations/variants
+            }
+
+            if (valA < valB) return typeSortConfig.direction === 'asc' ? -1 : 1;
+            if (valA > valB) return typeSortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    } else {
+        // Default Sort
+        list.sort((a, b) => a.name.localeCompare(b.name));
+    }
 
     return list;
-  }, [labs, typeSearch, typeFilterLab, typeSort]);
+  }, [labs, typeFilters, typeSortConfig]);
 
 
   // --- LOGIC FOR INDIVIDUAL UNITS (TAB 2) ---
@@ -212,26 +234,17 @@ export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs }
 
 
   // --- HANDLERS ---
-  const toggleTypeSort = () => {
-    if (typeSort === 'NAME_ASC') setTypeSort('NAME_DESC');
-    else if (typeSort === 'NAME_DESC') setTypeSort('QTY_DESC');
-    else if (typeSort === 'QTY_DESC') setTypeSort('QTY_ASC');
-    else setTypeSort('NAME_ASC');
-  };
-  
-  const getTypeSortLabel = () => {
-      switch(typeSort) {
-          case 'NAME_ASC': return "Nombre A-Z";
-          case 'NAME_DESC': return "Nombre Z-A";
-          case 'QTY_DESC': return "Mayor Cantidad";
-          case 'QTY_ASC': return "Menor Cantidad";
+  const handleTypeSort = (key: keyof EquipmentGroup | 'distribution') => {
+      let direction: 'asc' | 'desc' = 'asc';
+      if (typeSortConfig && typeSortConfig.key === key && typeSortConfig.direction === 'asc') {
+          direction = 'desc';
       }
+      setTypeSortConfig({ key, direction });
   };
 
-  const clearTypeFilters = () => {
-      setTypeSearch("");
-      setTypeFilterLab("");
-      setTypeSort('NAME_ASC');
+  const renderTypeSortIcon = (key: string) => {
+      if (typeSortConfig?.key !== key) return <ListFilter size={12} className="opacity-30" />;
+      return typeSortConfig.direction === 'asc' ? <ChevronUp size={14} className="text-blue-500"/> : <ChevronDown size={14} className="text-blue-500"/>;
   };
 
   const handleUnitSort = (key: keyof FlatUnit | 'lab') => {
@@ -242,8 +255,8 @@ export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs }
       setUnitSortConfig({ key, direction });
   };
 
-  const renderSortIcon = (key: string) => {
-      if (unitSortConfig?.key !== key) return <ArrowUpDown size={12} className="opacity-30" />;
+  const renderUnitSortIcon = (key: string) => {
+      if (unitSortConfig?.key !== key) return <ListFilter size={12} className="opacity-30" />;
       return unitSortConfig.direction === 'asc' ? <ChevronUp size={14} className="text-blue-500"/> : <ChevronDown size={14} className="text-blue-500"/>;
   };
 
@@ -272,102 +285,108 @@ export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs }
         </button>
       </div>
 
-      {/* --- CONTENT FOR TAB: TYPES (WITH GLOBAL TOOLBAR) --- */}
+      {/* --- CONTENT FOR TAB: TYPES (TABLE) --- */}
       {activeTab === 'TYPES' && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-             {/* Toolbar specifically for TYPES */}
-             <div className="flex flex-col md:flex-row gap-4 bg-white dark:bg-zinc-900 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                <div className="relative flex-1">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-400" />
-                    <Input 
-                        placeholder="Buscar por nombre, marca o modelo..."
-                        value={typeSearch} 
-                        onChange={(e) => setTypeSearch(e.target.value)}
-                        className="pl-9"
-                    />
-                </div>
-                <div className="flex gap-2">
-                    <div className="relative min-w-[200px]">
-                            <Filter className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-400" />
-                            <select 
-                                className="w-full h-10 pl-9 pr-3 rounded-md border border-zinc-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 appearance-none"
-                                value={typeFilterLab}
-                                onChange={(e) => setTypeFilterLab(e.target.value)}
-                            >
-                                <option value="">Todos los Laboratorios</option>
-                                {availableLabs.map(([code, name]) => (
-                                    <option key={code} value={code}>{code} - {name}</option>
-                                ))}
-                            </select>
-                    </div>
-                    <Button 
-                            variant="secondary" 
-                            onClick={toggleTypeSort} 
-                            className="gap-2 min-w-[160px]" 
-                            title="Ordenar"
-                    >
-                        <ArrowUpDown size={16}/>
-                        <span className="text-xs">{getTypeSortLabel()}</span>
-                    </Button>
-                    {(typeSearch || typeFilterLab || typeSort !== 'NAME_ASC') && (
-                        <Button variant="ghost" onClick={clearTypeFilters} className="px-2 text-zinc-500" title="Limpiar filtros">
-                            <X size={18}/>
-                        </Button>
-                    )}
-                </div>
-             </div>
-
-            {processedTypes.length === 0 ? (
-            <div className="text-center py-10 text-zinc-500 bg-zinc-50 dark:bg-zinc-900 rounded-lg border-2 border-dashed border-zinc-200 dark:border-zinc-800">
-                {typeSearch || typeFilterLab ? "No se encontraron equipos con los filtros actuales." : "No hay equipos registrados en el sistema."}
-            </div>
-            ) : (
-                <div className="grid grid-cols-1 gap-4">
-                    {processedTypes.map((item, idx) => (
-                        <Card key={idx} className="hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
-                            <CardContent className="p-4">
-                                <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
-                                        <Cpu size={24}/>
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex justify-between items-start">
-                                            <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-100">{item.name}</h3>
-                                            <div className="text-right">
-                                                <div className="text-sm font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200 px-2 py-1 rounded">
-                                                    {item.totalQuantity} Total
+          <Card className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+             <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 border-b border-zinc-200 dark:border-zinc-700">
+                             {/* Headers Row */}
+                            <tr>
+                                <th className="px-6 py-3 font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700" onClick={() => handleTypeSort('name')}>
+                                    <div className="flex items-center gap-2">Nombre del Equipo {renderTypeSortIcon('name')}</div>
+                                </th>
+                                <th className="px-6 py-3 font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700" onClick={() => handleTypeSort('totalQuantity')}>
+                                    <div className="flex items-center gap-2">Cant. Total {renderTypeSortIcon('totalQuantity')}</div>
+                                </th>
+                                <th className="px-6 py-3 font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700" onClick={() => handleTypeSort('totalUnits')}>
+                                    <div className="flex items-center gap-2">Unidades Inv. {renderTypeSortIcon('totalUnits')}</div>
+                                </th>
+                                <th className="px-6 py-3 font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700" onClick={() => handleTypeSort('distribution')}>
+                                    <div className="flex items-center gap-2">Distribución / Variantes {renderTypeSortIcon('distribution')}</div>
+                                </th>
+                            </tr>
+                            {/* Filter Inputs Row */}
+                            <tr className="bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                                <th className="px-4 py-2">
+                                    <input 
+                                        className="w-full px-2 py-1 text-xs font-normal border border-zinc-300 dark:border-zinc-700 rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        placeholder="Filtro nombre..."
+                                        value={typeFilters.name}
+                                        onChange={(e) => setTypeFilters(prev => ({ ...prev, name: e.target.value }))}
+                                    />
+                                </th>
+                                <th className="px-4 py-2">
+                                    <input 
+                                        className="w-full px-2 py-1 text-xs font-normal border border-zinc-300 dark:border-zinc-700 rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        placeholder="#"
+                                        value={typeFilters.qty}
+                                        onChange={(e) => setTypeFilters(prev => ({ ...prev, qty: e.target.value }))}
+                                    />
+                                </th>
+                                <th className="px-4 py-2">
+                                    <input 
+                                        className="w-full px-2 py-1 text-xs font-normal border border-zinc-300 dark:border-zinc-700 rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        placeholder="#"
+                                        value={typeFilters.units}
+                                        onChange={(e) => setTypeFilters(prev => ({ ...prev, units: e.target.value }))}
+                                    />
+                                </th>
+                                <th className="px-4 py-2">
+                                    <input 
+                                        className="w-full px-2 py-1 text-xs font-normal border border-zinc-300 dark:border-zinc-700 rounded bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        placeholder="Filtro lab, marca, modelo..."
+                                        value={typeFilters.distribution}
+                                        onChange={(e) => setTypeFilters(prev => ({ ...prev, distribution: e.target.value }))}
+                                    />
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
+                            {processedTypes.length === 0 ? (
+                                <tr><td colSpan={4} className="px-6 py-10 text-center text-zinc-500">No se encontraron equipos agrupados.</td></tr>
+                            ) : (
+                                processedTypes.map((item, idx) => (
+                                    <tr key={idx} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
+                                                    <Cpu size={16}/>
                                                 </div>
-                                                <div className="text-xs text-zinc-400 mt-1">{item.totalUnits} inventariados</div>
+                                                <span className="font-bold text-zinc-900 dark:text-zinc-100">{item.name}</span>
                                             </div>
-                                        </div>
-                                        
-                                        <div className="mt-4 space-y-2">
-                                            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Ubicaciones y Variantes:</p>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                        </td>
+                                        <td className="px-6 py-4">
+                                             <div className="text-sm font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200 px-2 py-1 rounded w-fit">
+                                                {item.totalQuantity}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-zinc-500">
+                                            {item.totalUnits}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-wrap gap-2">
                                                 {item.locations.map((loc, locIdx) => (
-                                                    <div key={locIdx} className="bg-zinc-50 dark:bg-zinc-800 p-2 rounded border border-zinc-100 dark:border-zinc-700 text-sm flex gap-2 items-start">
-                                                        <MapPin size={14} className="mt-0.5 text-zinc-400 shrink-0"/>
-                                                        <div>
-                                                            <span className="font-semibold text-blue-600 dark:text-blue-400">{loc.labCode}</span>
-                                                            <span className="mx-1 text-zinc-300">|</span>
-                                                            <span className="text-zinc-600 dark:text-zinc-300">{loc.brand} {loc.model}</span>
-                                                            <div className="text-xs text-zinc-400 mt-0.5">Cant: {loc.quantity}</div>
-                                                        </div>
+                                                    <div key={locIdx} className="bg-zinc-50 dark:bg-zinc-800 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-700 text-xs flex gap-1 items-center" title={`${loc.labName} | ${loc.brand} ${loc.model}`}>
+                                                        <MapPin size={10} className="text-zinc-400"/>
+                                                        <span className="font-semibold text-blue-600 dark:text-blue-400">{loc.labCode}</span>
+                                                        <span className="text-zinc-500">: {loc.brand} {loc.model} ({loc.quantity})</span>
                                                     </div>
                                                 ))}
                                             </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
-            )}
-          </div>
+             </CardContent>
+          </Card>
       )}
 
-      {/* --- CONTENT FOR TAB: UNITS (TABLE WITH INLINE FILTERS) --- */}
+      {/* --- CONTENT FOR TAB: UNITS (TABLE) --- */}
       {activeTab === 'UNITS' && (
           <Card className="animate-in fade-in slide-in-from-bottom-2 duration-300">
               <CardContent className="p-0">
@@ -377,19 +396,19 @@ export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs }
                               {/* Headers Row */}
                               <tr>
                                   <th className="px-6 py-3 font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700" onClick={() => handleUnitSort('inventoryCode')}>
-                                      <div className="flex items-center gap-2">Código {renderSortIcon('inventoryCode')}</div>
+                                      <div className="flex items-center gap-2">Código {renderUnitSortIcon('inventoryCode')}</div>
                                   </th>
                                   <th className="px-6 py-3 font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700" onClick={() => handleUnitSort('equipmentName')}>
-                                      <div className="flex items-center gap-2">Equipo {renderSortIcon('equipmentName')}</div>
+                                      <div className="flex items-center gap-2">Equipo {renderUnitSortIcon('equipmentName')}</div>
                                   </th>
                                   <th className="px-6 py-3 font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700" onClick={() => handleUnitSort('lab')}>
-                                      <div className="flex items-center gap-2">Laboratorio {renderSortIcon('lab')}</div>
+                                      <div className="flex items-center gap-2">Laboratorio {renderUnitSortIcon('lab')}</div>
                                   </th>
                                   <th className="px-6 py-3 font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700" onClick={() => handleUnitSort('locationInLab')}>
-                                      <div className="flex items-center gap-2">Detalle Ubicación {renderSortIcon('locationInLab')}</div>
+                                      <div className="flex items-center gap-2">Detalle Ubicación {renderUnitSortIcon('locationInLab')}</div>
                                   </th>
                                   <th className="px-6 py-3 font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700" onClick={() => handleUnitSort('acquisitionDate')}>
-                                      <div className="flex items-center gap-2">Adquisición {renderSortIcon('acquisitionDate')}</div>
+                                      <div className="flex items-center gap-2">Adquisición {renderUnitSortIcon('acquisitionDate')}</div>
                                   </th>
                               </tr>
                               {/* Filter Inputs Row */}
