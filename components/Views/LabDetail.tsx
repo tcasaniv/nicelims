@@ -5,7 +5,7 @@ import { Input } from '../ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
 import { ImageViewer } from '../ui/ImageViewer';
-import { ArrowLeft, Plus, Trash2, Save, Cpu, HardDrive, Users, UserCheck, UserCog, GraduationCap, Copy, ArrowRightLeft, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Cpu, HardDrive, Users, UserCheck, UserCog, GraduationCap, Copy, ArrowRightLeft, Image as ImageIcon, ArrowUp, ArrowDown } from 'lucide-react';
 import { EquipmentDetail } from './EquipmentDetail';
 import { SoftwareDetail } from './SoftwareDetail';
 
@@ -255,6 +255,21 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
     const newData = { ...formData, equipos: newEquipos };
     setFormData(newData);
     onUpdate(newData);
+  };
+  
+  const moveEquipmentOrder = (idx: number, direction: 'UP' | 'DOWN', e: React.MouseEvent) => {
+      e.stopPropagation();
+      const newEquipos = [...(formData.equipos || [])];
+
+      if (direction === 'UP' && idx > 0) {
+          [newEquipos[idx], newEquipos[idx - 1]] = [newEquipos[idx - 1], newEquipos[idx]];
+      } else if (direction === 'DOWN' && idx < newEquipos.length - 1) {
+          [newEquipos[idx], newEquipos[idx + 1]] = [newEquipos[idx + 1], newEquipos[idx]];
+      }
+      
+      const newData = { ...formData, equipos: newEquipos };
+      setFormData(newData);
+      onUpdate(newData);
   };
   
   const openMoveModal = (idx: number, e: React.MouseEvent) => {
@@ -592,7 +607,27 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
                                <p className="text-sm text-zinc-500">{eq.infoEquipo?.Marca} {eq.infoEquipo?.Modelo}</p>
                            </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 items-center">
+                             {/* Reorder Buttons */}
+                             <div className="flex mr-2 bg-zinc-100 dark:bg-zinc-800 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button 
+                                    onClick={(e) => moveEquipmentOrder(idx, 'UP', e)} 
+                                    disabled={idx === 0}
+                                    className="p-1.5 text-zinc-500 hover:text-blue-600 disabled:opacity-30"
+                                    title="Mover arriba"
+                                >
+                                    <ArrowUp size={16} />
+                                </button>
+                                <button 
+                                    onClick={(e) => moveEquipmentOrder(idx, 'DOWN', e)} 
+                                    disabled={idx === (formData.equipos || []).length - 1}
+                                    className="p-1.5 text-zinc-500 hover:text-blue-600 disabled:opacity-30"
+                                    title="Mover abajo"
+                                >
+                                    <ArrowDown size={16} />
+                                </button>
+                             </div>
+
                              <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={(e) => openMoveModal(idx, e)} title="Mover Equipo">
                                 <ArrowRightLeft size={16} />
                             </Button>
