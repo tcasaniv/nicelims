@@ -11,6 +11,7 @@ import { GlobalSoftwareList } from './components/Views/GlobalSoftwareList';
 import { GlobalPersonnelList } from './components/Views/GlobalPersonnelList';
 import { Modal } from './components/ui/Modal';
 import { Button } from './components/ui/Button';
+import { Input } from './components/ui/Input';
 import { LayoutDashboard, FlaskConical, Settings, Cpu, Save, Users } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -18,11 +19,20 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<ThemeMode>('system');
   const [currentView, setCurrentView] = useState<ViewType>('DASHBOARD');
   const [selectedLabIndex, setSelectedLabIndex] = useState<number | null>(null);
+  
+  // File Name State
+  const [fileName, setFileName] = useState("data_lims");
+  
+  // Sidebar state
+  // true = Expanded (Desktop: 64, Mobile: Visible)
+  // false = Collapsed (Desktop: 20/Icons, Mobile: Hidden)
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
   // Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [tempFileName, setTempFileName] = useState("");
   const [labToDelete, setLabToDelete] = useState<number | null>(null);
 
   // Theme Logic
@@ -42,8 +52,10 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
+        // On mobile, default to hidden
         setSidebarOpen(false);
       } else {
+        // On desktop, default to open
         setSidebarOpen(true);
       }
     };
@@ -56,6 +68,10 @@ const App: React.FC = () => {
   const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Update filename based on imported file (stripping extension)
+      const name = file.name.replace(/\.json$/i, "");
+      setFileName(name);
+
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
@@ -76,10 +92,23 @@ const App: React.FC = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", "data_lims.json");
+    downloadAnchorNode.setAttribute("download", `${fileName}.json`);
     document.body.appendChild(downloadAnchorNode);
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
+  };
+  
+  // Rename Logic
+  const openRenameModal = () => {
+      setTempFileName(fileName);
+      setIsRenameModalOpen(true);
+  };
+  
+  const saveFileName = () => {
+      if (tempFileName.trim()) {
+          setFileName(tempFileName.trim());
+          setIsRenameModalOpen(false);
+      }
   };
 
   // Navigation Logic
@@ -318,6 +347,8 @@ const App: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 relative h-full">
         <MenuBar 
+          fileName={fileName}
+          onRename={openRenameModal}
           onImport={handleImport} 
           onExport={handleExport} 
           theme={theme} 
@@ -394,6 +425,31 @@ const App: React.FC = () => {
         }
       >
         <p>¿Estás seguro de que deseas eliminar este laboratorio? Esta acción no se puede deshacer.</p>
+      </Modal>
+
+      <Modal
+        isOpen={isRenameModalOpen}
+        onClose={() => setIsRenameModalOpen(false)}
+        title="Renombrar Archivo"
+        footer={
+            <>
+                <Button variant="ghost" onClick={() => setIsRenameModalOpen(false)}>Cancelar</Button>
+                <Button onClick={saveFileName}>Guardar Nombre</Button>
+            </>
+        }
+      >
+         <div className="space-y-4">
+             <p className="text-sm text-zinc-500">Ingrese el nuevo nombre para el archivo (sin extensión):</p>
+             <Input 
+                value={tempFileName}
+                onChange={(e) => setTempFileName(e.target.value)}
+                placeholder="Nombre del archivo"
+                autoFocus
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveFileName();
+                }}
+             />
+         </div>
       </Modal>
 
       <Modal 
