@@ -31,12 +31,12 @@ export const LabList: React.FC<LabListProps> = ({ labs = [], onSelectLab, onDele
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex-1 cursor-pointer" onClick={() => onSelectLab(index)}>
                   <div className="flex items-center gap-2">
-                     <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-100 text-xs rounded font-mono">
-                        {lab.infoAmbiente?.["CÓDIGO DE LABORATORIO O TALLER"] || "S/C"}
-                     </span>
-                     <h3 className="font-semibold text-lg text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                        {lab.infoAmbiente?.["NOMBRE DEL LABORATORIO O TALLER"] || "Laboratorio sin nombre"}
-                     </h3>
+                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-100 text-xs rounded font-mono">
+                      {lab.infoAmbiente?.["CÓDIGO DE LABORATORIO O TALLER"] || "S/C"}
+                    </span>
+                    <h3 className="font-semibold text-lg text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      {lab.infoAmbiente?.["NOMBRE DEL LABORATORIO O TALLER"] || "Laboratorio sin nombre"}
+                    </h3>
                   </div>
                   <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
                     {lab.infoAmbiente?.["REFERENCIA DE UBICACIÓN"] || "Sin ubicación"}

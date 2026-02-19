@@ -27,7 +27,7 @@ export const MenuDropdown: React.FC<MenuDropdownProps> = ({ isOpen, onClose, chi
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       ref={dropdownRef}
       className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-zinc-800 rounded-md shadow-lg border border-zinc-200 dark:border-zinc-700 py-1 z-50 animate-in fade-in zoom-in-95 duration-100 origin-top-left"
     >
@@ -54,8 +54,8 @@ export const MenuItem: React.FC<MenuItemProps> = ({ onClick, children, icon, sho
       }}
       disabled={disabled}
       className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between group
-        ${disabled 
-          ? 'text-zinc-400 cursor-not-allowed' 
+        ${disabled
+          ? 'text-zinc-400 cursor-not-allowed'
           : 'text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700'
         }`}
     >

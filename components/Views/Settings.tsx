@@ -50,24 +50,24 @@ export const Settings: React.FC<SettingsProps> = ({ data, onUpdate }) => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input 
+              <Input
                 label="Nombre de la Universidad"
                 value={getValue("NOMBRE DE LA UNIVERSIDAD")}
                 onChange={(e) => handleChange("NOMBRE DE LA UNIVERSIDAD", e.target.value)}
               />
-              <Input 
+              <Input
                 label="Abreviatura"
                 value={getValue("ABREVIATURA UNIVERSIDAD")}
                 onChange={(e) => handleChange("ABREVIATURA UNIVERSIDAD", e.target.value)}
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input 
+              <Input
                 label="Facultad"
                 value={getValue("FACULTAD")}
                 onChange={(e) => handleChange("FACULTAD", e.target.value)}
               />
-              <Input 
+              <Input
                 label="Departamento Académico"
                 value={getValue("DEPARTAMENTO ACADÉMICO")}
                 onChange={(e) => handleChange("DEPARTAMENTO ACADÉMICO", e.target.value)}
@@ -82,22 +82,22 @@ export const Settings: React.FC<SettingsProps> = ({ data, onUpdate }) => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input 
+              <Input
                 label="Programa / Escuela"
                 value={getValue("PROGRAMA DE ESTUDIOS")}
                 onChange={(e) => handleChange("PROGRAMA DE ESTUDIOS", e.target.value)}
               />
-              <Input 
+              <Input
                 label="Código Programa"
                 value={getValue("CODIGO PROGRAMA")}
                 onChange={(e) => handleChange("CODIGO PROGRAMA", e.target.value)}
               />
             </div>
-             <Input 
-                label="Escuela Profesional"
-                value={getValue("ESCUELA")}
-                onChange={(e) => handleChange("ESCUELA", e.target.value)}
-              />
+            <Input
+              label="Escuela Profesional"
+              value={getValue("ESCUELA")}
+              onChange={(e) => handleChange("ESCUELA", e.target.value)}
+            />
           </CardContent>
         </Card>
 
@@ -107,12 +107,12 @@ export const Settings: React.FC<SettingsProps> = ({ data, onUpdate }) => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input 
+              <Input
                 label="Director de Programa"
                 value={getValue("DIRECTOR DEL PROGRAMA DE ESTUDIOS")}
                 onChange={(e) => handleChange("DIRECTOR DEL PROGRAMA DE ESTUDIOS", e.target.value)}
               />
-              <Input 
+              <Input
                 label="Director de Departamento"
                 value={getValue("DIRECTOR DEL DEPARTAMENTO ACADÉMICO")}
                 onChange={(e) => handleChange("DIRECTOR DEL DEPARTAMENTO ACADÉMICO", e.target.value)}

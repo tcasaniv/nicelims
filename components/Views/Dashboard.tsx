@@ -59,27 +59,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard 
-          title="Total Laboratorios" 
-          value={totalLabs} 
-          icon={<Microscope className="h-4 w-4 text-blue-600" />} 
+        <StatsCard
+          title="Total Laboratorios"
+          value={totalLabs}
+          icon={<Microscope className="h-4 w-4 text-blue-600" />}
         />
-        <StatsCard 
-          title="Tipos de Equipos" 
-          value={totalUniqueEquipments} 
+        <StatsCard
+          title="Tipos de Equipos"
+          value={totalUniqueEquipments}
           subtitle="Nombres únicos globales"
-          icon={<Cpu className="h-4 w-4 text-emerald-600" />} 
+          icon={<Cpu className="h-4 w-4 text-emerald-600" />}
         />
-        <StatsCard 
-          title="Tipos de Software" 
-          value={totalUniqueSoftware} 
+        <StatsCard
+          title="Tipos de Software"
+          value={totalUniqueSoftware}
           subtitle="Nombres únicos globales"
-          icon={<Save className="h-4 w-4 text-purple-600" />} 
+          icon={<Save className="h-4 w-4 text-purple-600" />}
         />
-        <StatsCard 
-          title="Aforo Total" 
-          value={totalCapacity} 
-          icon={<Users className="h-4 w-4 text-orange-600" />} 
+        <StatsCard
+          title="Aforo Total"
+          value={totalCapacity}
+          icon={<Users className="h-4 w-4 text-orange-600" />}
         />
       </div>
 
@@ -94,9 +94,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                 <XAxis dataKey="name" fontSize={12} />
                 <YAxis />
-                <Tooltip 
-                   contentStyle={{ backgroundColor: 'var(--tw-bg-opacity)', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                   cursor={{fill: 'transparent'}}
+                <Tooltip
+                  contentStyle={{ backgroundColor: 'var(--tw-bg-opacity)', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  cursor={{ fill: 'transparent' }}
                 />
                 <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
               </BarChart>
