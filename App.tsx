@@ -197,27 +197,42 @@ const App: React.FC = () => {
           
           if (!sourceLab || !targetLab || !sourceLab.equipos[equipmentIndex]) return prev;
 
-          const equipment = sourceLab.equipos[equipmentIndex];
+          const sourceEquipment = sourceLab.equipos[equipmentIndex];
+          let unitsToMove: any[] = [];
 
           if (!unitIndices || unitIndices.length === 0) {
+              unitsToMove = sourceEquipment.HojasDeVidaEquipos || [];
               sourceLab.equipos.splice(equipmentIndex, 1);
-              if (!targetLab.equipos) targetLab.equipos = [];
-              targetLab.equipos.push(equipment);
           } else {
-              const newEquipmentForTarget = JSON.parse(JSON.stringify(equipment));
-              newEquipmentForTarget.HojasDeVidaEquipos = [];
-              newEquipmentForTarget["Nº DE EQUIPOS"] = unitIndices.length.toString(); 
+              unitsToMove = (sourceEquipment.HojasDeVidaEquipos || []).filter((_: any, i: number) => unitIndices.includes(i));
+              const unitsToKeep = (sourceEquipment.HojasDeVidaEquipos || []).filter((_: any, i: number) => !unitIndices.includes(i));
 
-              const unitsToMove = (equipment.HojasDeVidaEquipos || []).filter((_: any, i: number) => unitIndices.includes(i));
-              const unitsToKeep = (equipment.HojasDeVidaEquipos || []).filter((_: any, i: number) => !unitIndices.includes(i));
-
-              equipment.HojasDeVidaEquipos = unitsToKeep;
-              equipment["Nº DE EQUIPOS"] = unitsToKeep.length.toString();
-
-              newEquipmentForTarget.HojasDeVidaEquipos = unitsToMove;
+              sourceEquipment.HojasDeVidaEquipos = unitsToKeep;
+              sourceEquipment["Nº DE EQUIPOS"] = unitsToKeep.length.toString();
+          }
               
-              if (!targetLab.equipos) targetLab.equipos = [];
-              targetLab.equipos.push(newEquipmentForTarget);
+          if (!targetLab.equipos) targetLab.equipos = [];
+
+          const sourceName = (sourceEquipment["NOMBRE DEL EQUIPO"] || "").trim().toUpperCase();
+          const sourceBrand = (sourceEquipment.infoEquipo?.Marca || "").trim().toUpperCase();
+          const sourceModel = (sourceEquipment.infoEquipo?.Modelo || "").trim().toUpperCase();
+
+          const matchingTargetIndex = targetLab.equipos.findIndex((targetEq: any) => {
+              const tName = (targetEq["NOMBRE DEL EQUIPO"] || "").trim().toUpperCase();
+              const tBrand = (targetEq.infoEquipo?.Marca || "").trim().toUpperCase();
+              const tModel = (targetEq.infoEquipo?.Modelo || "").trim().toUpperCase();
+              return tName === sourceName && tBrand === sourceBrand && tModel === sourceModel;
+          });
+
+          if (matchingTargetIndex !== -1) {
+              const targetEq = targetLab.equipos[matchingTargetIndex];
+              targetEq.HojasDeVidaEquipos = [...(targetEq.HojasDeVidaEquipos || []), ...unitsToMove];
+              targetEq["Nº DE EQUIPOS"] = targetEq.HojasDeVidaEquipos.length.toString();
+          } else {
+              const newEquipmentEntry = JSON.parse(JSON.stringify(sourceEquipment));
+              newEquipmentEntry.HojasDeVidaEquipos = unitsToMove;
+              newEquipmentEntry["Nº DE EQUIPOS"] = unitsToMove.length.toString();
+              targetLab.equipos.push(newEquipmentEntry);
           }
           return newData;
       });
