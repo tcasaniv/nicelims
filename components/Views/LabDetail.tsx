@@ -44,6 +44,14 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
   // Image Viewer State
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
+  // Custom Confirmation Modal State
+  const [confirmationState, setConfirmationState] = useState<{
+      isOpen: boolean;
+      title: string;
+      message: string;
+      onConfirm: () => void;
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+
 
   // Move Equipment State
   const [moveModalState, setMoveModalState] = useState<{
@@ -360,12 +368,18 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
 
   const deleteEquipment = (idx: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    if(confirm("¿Eliminar este tipo de equipo y todo su historial?")) {
-        const updatedEquipos = (formData.equipos || []).filter((_, i) => i !== idx);
-        const newData = { ...formData, equipos: updatedEquipos };
-        setFormData(newData);
-        onUpdate(newData);
-    }
+    setConfirmationState({
+        isOpen: true,
+        title: "Eliminar Equipo",
+        message: "¿Estás seguro de eliminar este tipo de equipo y todo su historial de unidades y mantenimientos? Esta acción no se puede deshacer.",
+        onConfirm: () => {
+            const updatedEquipos = (formData.equipos || []).filter((_, i) => i !== idx);
+            const newData = { ...formData, equipos: updatedEquipos };
+            setFormData(newData);
+            onUpdate(newData);
+            setConfirmationState(prev => ({ ...prev, isOpen: false }));
+        }
+    });
   };
   
   const duplicateEquipment = (idx: number, e: React.MouseEvent) => {
@@ -456,12 +470,18 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
 
   const deleteSoftware = (idx: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    if(confirm("¿Eliminar este software?")) {
-        const updatedSoftware = (formData.software || []).filter((_, i) => i !== idx);
-        const newData = { ...formData, software: updatedSoftware };
-        setFormData(newData);
-        onUpdate(newData);
-    }
+    setConfirmationState({
+        isOpen: true,
+        title: "Eliminar Software",
+        message: "¿Estás seguro de eliminar este software del inventario?",
+        onConfirm: () => {
+            const updatedSoftware = (formData.software || []).filter((_, i) => i !== idx);
+            const newData = { ...formData, software: updatedSoftware };
+            setFormData(newData);
+            onUpdate(newData);
+            setConfirmationState(prev => ({ ...prev, isOpen: false }));
+        }
+    });
   };
   
   const duplicateSoftware = (idx: number, e: React.MouseEvent) => {
@@ -1039,6 +1059,21 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
              </div>
              <p className="text-xs text-zinc-500">Se moverá la entrada completa del software y todas sus licencias.</p>
          </div>
+      </Modal>
+
+      {/* General Confirmation Modal */}
+      <Modal
+          isOpen={confirmationState.isOpen}
+          onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
+          title={confirmationState.title}
+          footer={
+            <>
+                <Button variant="ghost" onClick={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}>Cancelar</Button>
+                <Button variant="danger" onClick={confirmationState.onConfirm}>Confirmar Eliminación</Button>
+            </>
+          }
+      >
+          <p className="text-zinc-700 dark:text-zinc-300">{confirmationState.message}</p>
       </Modal>
 
       {/* Lab Photo Viewer */}

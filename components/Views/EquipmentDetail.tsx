@@ -501,6 +501,14 @@ const ProceduresTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
 const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormData: React.Dispatch<React.SetStateAction<Equipo>> }) => {
   const [selectedUnitIndex, setSelectedUnitIndex] = useState<number | null>(null);
   
+  // Custom Confirmation Modal State
+  const [confirmationState, setConfirmationState] = useState<{
+      isOpen: boolean;
+      title: string;
+      message: string;
+      onConfirm: () => void;
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+
   // Table State
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
@@ -602,10 +610,16 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
   };
 
   const deleteUnit = (idx: number) => {
-     if(confirm("¿Eliminar esta unidad del inventario?")) {
-        setFormData(prev => ({ ...prev, HojasDeVidaEquipos: (prev.HojasDeVidaEquipos || []).filter((_, i) => i !== idx) }));
-        setSelectedUnitIndex(null);
-     }
+     setConfirmationState({
+         isOpen: true,
+         title: "Eliminar Unidad",
+         message: "¿Estás seguro de eliminar esta unidad del inventario?",
+         onConfirm: () => {
+             setFormData(prev => ({ ...prev, HojasDeVidaEquipos: (prev.HojasDeVidaEquipos || []).filter((_, i) => i !== idx) }));
+             setSelectedUnitIndex(null);
+             setConfirmationState(prev => ({ ...prev, isOpen: false }));
+         }
+     });
   };
 
   const updateUnit = (idx: number, unit: HojaDeVidaEquipo) => {
@@ -738,6 +752,21 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
                 <p className="text-xs text-zinc-400 mt-2 text-right">* El reordenamiento está desactivado mientras los filtros u ordenamiento estén activos.</p>
             )}
         </CardContent>
+
+        {/* General Confirmation Modal for Units */}
+        <Modal
+            isOpen={confirmationState.isOpen}
+            onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
+            title={confirmationState.title}
+            footer={
+            <>
+                <Button variant="ghost" onClick={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}>Cancelar</Button>
+                <Button variant="danger" onClick={confirmationState.onConfirm}>Confirmar Eliminación</Button>
+            </>
+            }
+        >
+            <p className="text-zinc-700 dark:text-zinc-300">{confirmationState.message}</p>
+        </Modal>
     </Card>
   );
 };
@@ -747,6 +776,14 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
     const [maintenancePhotoModal, setMaintenancePhotoModal] = useState<{ logIdx: number; isOpen: boolean } | null>(null);
     const [newMaintPhotoUrl, setNewMaintPhotoUrl] = useState("");
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+
+    // Custom Confirmation Modal State
+    const [confirmationState, setConfirmationState] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
 
     const handleInfoChange = (key: string, value: string) => {
         onUpdate({ ...unit, infoEquipo: { ...(unit.infoEquipo || {}), [key]: value } as any });
@@ -786,11 +823,16 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
     };
 
     const deleteMaintenance = (idx: number) => {
-         if(confirm("¿Eliminar este registro de mantenimiento?")) {
-            const newLogs = (unit.mantenimientos || []).filter((_, i) => i !== idx);
-            // No need to sort if removing, but ensuring state consistency
-            onUpdate({ ...unit, mantenimientos: newLogs });
-         }
+        setConfirmationState({
+             isOpen: true,
+             title: "Eliminar Mantenimiento",
+             message: "¿Estás seguro de eliminar este registro de mantenimiento?",
+             onConfirm: () => {
+                const newLogs = (unit.mantenimientos || []).filter((_, i) => i !== idx);
+                onUpdate({ ...unit, mantenimientos: newLogs });
+                setConfirmationState(prev => ({ ...prev, isOpen: false }));
+             }
+        });
     };
 
     const updateMaintenance = (idx: number, log: MantenimientoLog) => {
@@ -912,6 +954,21 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
                          )}
                      </div>
                 </div>
+            </Modal>
+
+            {/* General Confirmation Modal for Maintenance */}
+            <Modal
+                isOpen={confirmationState.isOpen}
+                onClose={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}
+                title={confirmationState.title}
+                footer={
+                <>
+                    <Button variant="ghost" onClick={() => setConfirmationState(prev => ({ ...prev, isOpen: false }))}>Cancelar</Button>
+                    <Button variant="danger" onClick={confirmationState.onConfirm}>Confirmar Eliminación</Button>
+                </>
+                }
+            >
+                <p className="text-zinc-700 dark:text-zinc-300">{confirmationState.message}</p>
             </Modal>
 
             <ImageViewer 
