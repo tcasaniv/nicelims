@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Equipo, Caracteristica, ProcedimientoMantenimiento, MantenimientoFrecuencia, MantenimientoTask, HojaDeVidaEquipo, MantenimientoLog } from '../../types';
+import { Equipo, Caracteristica, ProcedimientoMantenimiento, MantenimientoFrecuencia, MantenimientoTask, HojaDeVidaEquipo, MantenimientoLog, Documento } from '../../types';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
 import { ImageViewer } from '../ui/ImageViewer';
-import { ArrowLeft, Plus, Trash2, Save, Wrench, ClipboardList, Box, History, FileText, Copy, Camera, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, X } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Wrench, ClipboardList, Box, History, FileText, Copy, Camera, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, X, ExternalLink } from 'lucide-react';
 
 interface EquipmentDetailProps {
   equipment: Equipo;
@@ -112,6 +112,23 @@ const GeneralTab = ({ formData, setFormData, handleInfoChange }: { formData: Equ
     setFormData(prev => ({ ...prev, caracteristicas: (prev.caracteristicas || []).filter((_, i) => i !== idx) }));
   };
 
+  // Document Helpers
+  const addDocument = () => {
+    const newDoc: Documento = { titulo: "", url: "" };
+    setFormData(prev => ({ ...prev, documentos: [...(prev.documentos || []), newDoc] }));
+  };
+
+  const updateDocument = (idx: number, key: keyof Documento, value: string) => {
+    const newDocs = [...(formData.documentos || [])];
+    newDocs[idx] = { ...newDocs[idx], [key]: value };
+    setFormData(prev => ({ ...prev, documentos: newDocs }));
+  };
+
+  const removeDocument = (idx: number) => {
+    setFormData(prev => ({ ...prev, documentos: (prev.documentos || []).filter((_, i) => i !== idx) }));
+  };
+
+
   const handleAddPhoto = () => {
       if (newPhotoUrl.trim()) {
           setFormData(prev => ({ ...prev, Fotografias: [...(prev.Fotografias || []), newPhotoUrl.trim()] }));
@@ -192,6 +209,57 @@ const GeneralTab = ({ formData, setFormData, handleInfoChange }: { formData: Equ
                         <span className="text-xs mt-1">Añadir Foto</span>
                     </button>
                 </div>
+            </CardContent>
+         </Card>
+
+         {/* Document Section */}
+         <Card>
+            <CardHeader>
+                <div className="flex justify-between items-center">
+                    <CardTitle className="flex items-center gap-2"><FileText size={18}/> Documentación Técnica</CardTitle>
+                    <Button size="sm" variant="secondary" onClick={addDocument}><Plus size={14}/></Button>
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+                {(formData.documentos || []).map((doc, idx) => (
+                    <div key={idx} className="flex gap-2 items-start bg-zinc-50 dark:bg-zinc-800/50 p-2 rounded-md border border-zinc-100 dark:border-zinc-800">
+                        <div className="flex-1 space-y-1">
+                            <Input 
+                                placeholder="Título (ej. Manual de Usuario)" 
+                                value={doc.titulo} 
+                                onChange={e => updateDocument(idx, 'titulo', e.target.value)} 
+                                className="text-sm font-medium"
+                            />
+                            <Input 
+                                placeholder="URL (https://...)" 
+                                value={doc.url} 
+                                onChange={e => updateDocument(idx, 'url', e.target.value)} 
+                                className="text-xs font-mono text-zinc-500"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1 mt-1">
+                            {doc.url && (
+                                <a 
+                                    href={doc.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="p-2 text-zinc-500 hover:text-blue-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
+                                    title="Abrir enlace"
+                                >
+                                    <ExternalLink size={16} />
+                                </a>
+                            )}
+                            <button 
+                                onClick={() => removeDocument(idx)} 
+                                className="p-2 text-zinc-500 hover:text-red-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
+                                title="Eliminar"
+                            >
+                                <Trash2 size={16}/>
+                            </button>
+                        </div>
+                    </div>
+                ))}
+                {(formData.documentos || []).length === 0 && <p className="text-zinc-500 text-sm italic">No hay documentos registrados (Manuales, Datasheets, etc).</p>}
             </CardContent>
          </Card>
       </div>

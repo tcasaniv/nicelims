@@ -52,8 +52,14 @@ export interface Equipo {
   "infoEquipo"?: InfoEquipoDetalle;
   "Fotografias"?: string[];
   "caracteristicas"?: Caracteristica[];
+  "documentos"?: Documento[];
   "ProcedimientoMantenimiento"?: ProcedimientoMantenimiento;
   "HojasDeVidaEquipos"?: HojaDeVidaEquipo[];
+}
+
+export interface Documento {
+  titulo: string;
+  url: string;
 }
 
 export interface InfoEquipoDetalle {
