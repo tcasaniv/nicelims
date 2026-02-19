@@ -5,7 +5,7 @@ import { Input } from '../ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
 import { ImageViewer } from '../ui/ImageViewer';
-import { ArrowLeft, Plus, Trash2, Save, Cpu, HardDrive, Users, UserCheck, UserCog, GraduationCap, Copy, ArrowRightLeft, Image as ImageIcon, ArrowUp, ArrowDown, FileText, ExternalLink, Search, ArrowUpDown, X } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Cpu, HardDrive, Users, UserCheck, UserCog, GraduationCap, Copy, ArrowRightLeft, Image as ImageIcon, ArrowUp, ArrowDown, FileText, ExternalLink, ChevronUp, ChevronDown, ListFilter, Hash, Tag } from 'lucide-react';
 import { EquipmentDetail } from './EquipmentDetail';
 import { SoftwareDetail } from './SoftwareDetail';
 
@@ -20,7 +20,6 @@ interface LabDetailProps {
 }
 
 type Tab = 'INFO' | 'EQUIPOS' | 'SOFTWARE';
-type SortOption = 'NAME_ASC' | 'NAME_DESC' | 'QTY_ASC' | 'QTY_DESC';
 
 export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIndex, onBack, onUpdate, onMoveEquipment, onMoveSoftware }) => {
   const [activeTab, setActiveTab] = useState<Tab>('INFO');
@@ -31,11 +30,24 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
   const [selectedEquipmentIndex, setSelectedEquipmentIndex] = useState<number | null>(null);
   const [selectedSoftwareIndex, setSelectedSoftwareIndex] = useState<number | null>(null);
 
-  // Filter & Sort State
-  const [eqSearch, setEqSearch] = useState("");
-  const [eqSort, setEqSort] = useState<SortOption>('NAME_ASC');
-  const [swSearch, setSwSearch] = useState("");
-  const [swSort, setSwSort] = useState<SortOption>('NAME_ASC');
+  // --- FILTER & SORT STATE: EQUIPMENT ---
+  const [eqFilters, setEqFilters] = useState({
+      name: "",
+      model: "",
+      qty: "",
+      inv: ""
+  });
+  const [eqSortConfig, setEqSortConfig] = useState<{ key: keyof Equipo | 'model' | 'inv'; direction: 'asc' | 'desc' } | null>(null);
+
+  // --- FILTER & SORT STATE: SOFTWARE ---
+  const [swFilters, setSwFilters] = useState({
+      name: "",
+      version: "",
+      licenses: "",
+      type: ""
+  });
+  const [swSortConfig, setSwSortConfig] = useState<{ key: keyof Software; direction: 'asc' | 'desc' } | null>(null);
+
 
   // Photo Modals State
   const [labPhotoModalOpen, setLabPhotoModalOpen] = useState(false);
@@ -79,80 +91,119 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
   const processedEquipos = useMemo(() => {
     let items = (formData.equipos || []).map((item, index) => ({ ...item, originalIndex: index }));
     
-    // Search
-    if (eqSearch.trim()) {
-        const lower = eqSearch.toLowerCase();
-        items = items.filter(item => 
-            (item["NOMBRE DEL EQUIPO"] || "").toLowerCase().includes(lower) ||
-            (item.infoEquipo?.Marca || "").toLowerCase().includes(lower) ||
-            (item.infoEquipo?.Modelo || "").toLowerCase().includes(lower)
+    // Filters
+    if (eqFilters.name) {
+        const lower = eqFilters.name.toLowerCase();
+        items = items.filter(i => (i["NOMBRE DEL EQUIPO"] || "").toLowerCase().includes(lower));
+    }
+    if (eqFilters.model) {
+        const lower = eqFilters.model.toLowerCase();
+        items = items.filter(i => 
+            (i.infoEquipo?.Marca || "").toLowerCase().includes(lower) || 
+            (i.infoEquipo?.Modelo || "").toLowerCase().includes(lower)
         );
+    }
+    if (eqFilters.qty) {
+        items = items.filter(i => (i["Nº DE EQUIPOS"] || "").includes(eqFilters.qty));
+    }
+    if (eqFilters.inv) {
+        items = items.filter(i => (i.HojasDeVidaEquipos || []).length.toString().includes(eqFilters.inv));
     }
 
     // Sort
-    items.sort((a, b) => {
-        const nameA = (a["NOMBRE DEL EQUIPO"] || "").toLowerCase();
-        const nameB = (b["NOMBRE DEL EQUIPO"] || "").toLowerCase();
-        const qtyA = parseInt(a["Nº DE EQUIPOS"] || "0");
-        const qtyB = parseInt(b["Nº DE EQUIPOS"] || "0");
+    if (eqSortConfig) {
+        items.sort((a, b) => {
+            let valA: any = "";
+            let valB: any = "";
 
-        switch (eqSort) {
-            case 'NAME_ASC': return nameA.localeCompare(nameB);
-            case 'NAME_DESC': return nameB.localeCompare(nameA);
-            case 'QTY_ASC': return qtyA - qtyB;
-            case 'QTY_DESC': return qtyB - qtyA;
-            default: return 0;
-        }
-    });
+            switch (eqSortConfig.key) {
+                case 'NOMBRE DEL EQUIPO': valA = a["NOMBRE DEL EQUIPO"] || ""; valB = b["NOMBRE DEL EQUIPO"] || ""; break;
+                case 'model': 
+                    valA = `${a.infoEquipo?.Marca} ${a.infoEquipo?.Modelo}`; 
+                    valB = `${b.infoEquipo?.Marca} ${b.infoEquipo?.Modelo}`; 
+                    break;
+                case 'Nº DE EQUIPOS': 
+                    valA = parseInt(a["Nº DE EQUIPOS"] || "0"); 
+                    valB = parseInt(b["Nº DE EQUIPOS"] || "0"); 
+                    break;
+                case 'inv': 
+                    valA = (a.HojasDeVidaEquipos || []).length; 
+                    valB = (b.HojasDeVidaEquipos || []).length; 
+                    break;
+                default: break;
+            }
+
+            if (valA < valB) return eqSortConfig.direction === 'asc' ? -1 : 1;
+            if (valA > valB) return eqSortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }
 
     return items;
-  }, [formData.equipos, eqSearch, eqSort]);
+  }, [formData.equipos, eqFilters, eqSortConfig]);
 
   const processedSoftware = useMemo(() => {
       let items = (formData.software || []).map((item, index) => ({ ...item, originalIndex: index }));
 
-      // Search
-      if (swSearch.trim()) {
-          const lower = swSearch.toLowerCase();
-          items = items.filter(item => 
-              (item["NOMBRE DEL SOFTWARE"] || "").toLowerCase().includes(lower) ||
-              (item["TIPO DE LICENCIA"] || "").toLowerCase().includes(lower)
-          );
+      // Filters
+      if (swFilters.name) {
+          const lower = swFilters.name.toLowerCase();
+          items = items.filter(i => (i["NOMBRE DEL SOFTWARE"] || "").toLowerCase().includes(lower));
+      }
+      if (swFilters.version) {
+          const lower = swFilters.version.toLowerCase();
+          items = items.filter(i => (i["VERSIÓN"] || "").toLowerCase().includes(lower));
+      }
+      if (swFilters.licenses) {
+          items = items.filter(i => (i["Nº DE LICENCIAS"] || "").includes(swFilters.licenses));
+      }
+      if (swFilters.type) {
+          const lower = swFilters.type.toLowerCase();
+          items = items.filter(i => (i["TIPO DE LICENCIA"] || "").toLowerCase().includes(lower));
       }
 
       // Sort
-      items.sort((a, b) => {
-          const nameA = (a["NOMBRE DEL SOFTWARE"] || "").toLowerCase();
-          const nameB = (b["NOMBRE DEL SOFTWARE"] || "").toLowerCase();
-          const qtyA = parseInt(a["Nº DE LICENCIAS"] || "0");
-          const qtyB = parseInt(b["Nº DE LICENCIAS"] || "0");
+      if (swSortConfig) {
+          items.sort((a, b) => {
+              let valA: any = "";
+              let valB: any = "";
 
-          switch (swSort) {
-            case 'NAME_ASC': return nameA.localeCompare(nameB);
-            case 'NAME_DESC': return nameB.localeCompare(nameA);
-            case 'QTY_ASC': return qtyA - qtyB;
-            case 'QTY_DESC': return qtyB - qtyA;
-            default: return 0;
-        }
-      });
+              switch (swSortConfig.key) {
+                case 'NOMBRE DEL SOFTWARE': valA = a["NOMBRE DEL SOFTWARE"] || ""; valB = b["NOMBRE DEL SOFTWARE"] || ""; break;
+                case 'VERSIÓN': valA = a["VERSIÓN"] || ""; valB = b["VERSIÓN"] || ""; break;
+                case 'Nº DE LICENCIAS': 
+                    valA = parseInt(a["Nº DE LICENCIAS"] || "0"); 
+                    valB = parseInt(b["Nº DE LICENCIAS"] || "0"); 
+                    break;
+                case 'TIPO DE LICENCIA': valA = a["TIPO DE LICENCIA"] || ""; valB = b["TIPO DE LICENCIA"] || ""; break;
+                default: break;
+            }
+
+            if (valA < valB) return swSortConfig.direction === 'asc' ? -1 : 1;
+            if (valA > valB) return swSortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+          });
+      }
 
       return items;
-  }, [formData.software, swSearch, swSort]);
+  }, [formData.software, swFilters, swSortConfig]);
 
-  const toggleSort = (current: SortOption, setSort: (s: SortOption) => void) => {
-      if (current === 'NAME_ASC') setSort('NAME_DESC');
-      else if (current === 'NAME_DESC') setSort('QTY_DESC');
-      else if (current === 'QTY_DESC') setSort('QTY_ASC');
-      else setSort('NAME_ASC');
+  // --- SORT HANDLERS ---
+  const handleEqSort = (key: keyof Equipo | 'model' | 'inv') => {
+      let direction: 'asc' | 'desc' = 'asc';
+      if (eqSortConfig && eqSortConfig.key === key && eqSortConfig.direction === 'asc') direction = 'desc';
+      setEqSortConfig({ key, direction });
+  };
+  
+  const handleSwSort = (key: keyof Software) => {
+      let direction: 'asc' | 'desc' = 'asc';
+      if (swSortConfig && swSortConfig.key === key && swSortConfig.direction === 'asc') direction = 'desc';
+      setSwSortConfig({ key, direction });
   };
 
-  const getSortLabel = (sort: SortOption) => {
-      switch(sort) {
-          case 'NAME_ASC': return "Nombre A-Z";
-          case 'NAME_DESC': return "Nombre Z-A";
-          case 'QTY_DESC': return "Mayor Cantidad";
-          case 'QTY_ASC': return "Menor Cantidad";
-      }
+  const renderSortIcon = (key: string, currentConfig: any) => {
+      if (currentConfig?.key !== key) return <ListFilter size={12} className="opacity-30" />;
+      return currentConfig.direction === 'asc' ? <ChevronUp size={14} className="text-blue-500"/> : <ChevronDown size={14} className="text-blue-500"/>;
   };
 
 
@@ -352,7 +403,8 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
     const newLabs = { ...formData, equipos: [...(formData.equipos || []), newEq] };
     setFormData(newLabs);
     onUpdate(newLabs);
-    setEqSearch("");
+    // Clear filters to see the new item
+    setEqFilters({ name: "", model: "", qty: "", inv: "" });
     setSelectedEquipmentIndex((newLabs.equipos || []).length - 1);
   };
 
@@ -454,7 +506,7 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
       const newLabs = { ...formData, software: [...(formData.software || []), newSw] };
       setFormData(newLabs);
       onUpdate(newLabs);
-      setSwSearch("");
+      setSwFilters({ name: "", version: "", licenses: "", type: "" });
       setSelectedSoftwareIndex((newLabs.software || []).length - 1);
   };
 
@@ -590,7 +642,6 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
       <div className="pt-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
         {activeTab === 'INFO' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
-            
             {/* Columna Izquierda */}
             <div className="space-y-6">
                 <Card>
@@ -786,169 +837,184 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
           </div>
         )}
 
+        {/* --- TAB: EQUIPOS (TABLE VIEW) --- */}
         {activeTab === 'EQUIPOS' && (
           <div className="space-y-4">
-            <div className="flex flex-col md:flex-row justify-between gap-4 items-center">
-                 <div className="flex gap-2 flex-1 w-full md:w-auto">
-                    <div className="relative flex-1 max-w-sm">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-400" />
-                        <Input 
-                            placeholder="Buscar equipo..." 
-                            value={eqSearch} 
-                            onChange={(e) => setEqSearch(e.target.value)}
-                            className="pl-9"
-                        />
-                         {eqSearch && (
-                            <button 
-                                onClick={() => setEqSearch("")}
-                                className="absolute right-2.5 top-2.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
-                            >
-                                <X size={16} />
-                            </button>
-                        )}
-                    </div>
-                     <Button 
-                        variant="secondary" 
-                        onClick={() => toggleSort(eqSort, setEqSort)}
-                        className="gap-2"
-                        title="Cambiar orden"
-                     >
-                        <ArrowUpDown size={16}/>
-                        <span className="hidden sm:inline text-xs">{getSortLabel(eqSort)}</span>
-                    </Button>
-                 </div>
+            <div className="flex justify-between items-center">
+                 <h3 className="font-bold text-lg">Listado de Equipos</h3>
                 <Button onClick={addMockEquipment} size="sm"><Plus size={16} className="mr-2"/> Añadir Equipo</Button>
             </div>
-            <div className="grid gap-4">
-              {processedEquipos.length === 0 && (
-                  <div className="text-center py-10 text-zinc-500 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-lg">
-                      {eqSearch ? "No se encontraron equipos con ese criterio." : "No hay equipos registrados."}
-                  </div>
-              )}
-              {processedEquipos.map((eq) => {
-                const idx = eq.originalIndex;
-                return (
-                <Card key={idx} className="cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-colors group">
-                  <CardContent className="p-4" onClick={() => setSelectedEquipmentIndex(idx)}>
-                     <div className="flex justify-between items-start">
-                        <div className="flex gap-4">
-                           <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded flex items-center justify-center shrink-0">
-                               {eq.Fotografias?.[0] ? <img src={eq.Fotografias[0]} alt="eq" className="w-full h-full object-cover rounded"/> : <Cpu className="text-zinc-400"/>}
-                           </div>
-                           <div>
-                               <h4 className="font-bold text-lg">{eq["NOMBRE DEL EQUIPO"] || "Equipo sin nombre"}</h4>
-                               <p className="text-sm text-zinc-500">{eq.infoEquipo?.Marca} {eq.infoEquipo?.Modelo}</p>
-                           </div>
-                        </div>
-                        <div className="flex gap-1 items-center">
-                             {/* Reorder Buttons (Only visible if no sort/search applied) */}
-                             {!eqSearch && eqSort === 'NAME_ASC' && (
-                                 <div className="flex mr-1 bg-zinc-100 dark:bg-zinc-800 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Button variant="icon" action="primary" size="icon-md" onClick={(e) => moveEquipmentOrder(idx, 'UP', e)} disabled={idx === 0} title="Mover arriba">
-                                        <ArrowUp size={16} />
-                                    </Button>
-                                    <Button variant="icon" action="primary" size="icon-md" onClick={(e) => moveEquipmentOrder(idx, 'DOWN', e)} disabled={idx === (formData.equipos || []).length - 1} title="Mover abajo">
-                                        <ArrowDown size={16} />
-                                    </Button>
-                                 </div>
-                             )}
 
-                             <Button variant="icon" action="primary" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => openMoveModal(idx, e)} title="Mover Equipo">
-                                <ArrowRightLeft size={16} />
-                            </Button>
-                             <Button variant="icon" action="primary" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => duplicateEquipment(idx, e)} title="Duplicar">
-                                <Copy size={16} />
-                            </Button>
-                            <Button variant="icon" action="danger" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => deleteEquipment(idx, e)} title="Eliminar">
-                                <Trash2 size={16} />
-                            </Button>
-                        </div>
-                     </div>
-                     <div className="mt-4 flex gap-4 text-xs text-zinc-500">
-                         <span className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">Cant: {eq["Nº DE EQUIPOS"] || "1"}</span>
-                         <span className="bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">Unidades Inventariadas: {(eq.HojasDeVidaEquipos || []).length}</span>
-                     </div>
-                  </CardContent>
-                </Card>
-              )})}
-            </div>
+            <Card className="overflow-hidden">
+                <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 border-b border-zinc-200 dark:border-zinc-700">
+                                <tr>
+                                    <th className="px-6 py-3 font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700" onClick={() => handleEqSort('NOMBRE DEL EQUIPO')}>
+                                        <div className="flex items-center gap-2">Nombre {renderSortIcon('NOMBRE DEL EQUIPO', eqSortConfig)}</div>
+                                    </th>
+                                    <th className="px-6 py-3 font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700" onClick={() => handleEqSort('model')}>
+                                        <div className="flex items-center gap-2">Marca / Modelo {renderSortIcon('model', eqSortConfig)}</div>
+                                    </th>
+                                    <th className="px-6 py-3 font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 w-24" onClick={() => handleEqSort('Nº DE EQUIPOS')}>
+                                        <div className="flex items-center gap-2">Cant {renderSortIcon('Nº DE EQUIPOS', eqSortConfig)}</div>
+                                    </th>
+                                    <th className="px-6 py-3 font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 w-24" onClick={() => handleEqSort('inv')}>
+                                        <div className="flex items-center gap-2">Inv {renderSortIcon('inv', eqSortConfig)}</div>
+                                    </th>
+                                    <th className="px-6 py-3 font-medium text-right">Acciones</th>
+                                </tr>
+                                <tr className="bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                                    <th className="px-4 py-2">
+                                        <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Filtro nombre..." value={eqFilters.name} onChange={e => setEqFilters({...eqFilters, name: e.target.value})} />
+                                    </th>
+                                    <th className="px-4 py-2">
+                                        <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Filtro marca/modelo..." value={eqFilters.model} onChange={e => setEqFilters({...eqFilters, model: e.target.value})} />
+                                    </th>
+                                    <th className="px-4 py-2">
+                                        <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="#" value={eqFilters.qty} onChange={e => setEqFilters({...eqFilters, qty: e.target.value})} />
+                                    </th>
+                                    <th className="px-4 py-2">
+                                        <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="#" value={eqFilters.inv} onChange={e => setEqFilters({...eqFilters, inv: e.target.value})} />
+                                    </th>
+                                    <th className="px-4 py-2"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
+                                {processedEquipos.length === 0 ? (
+                                    <tr><td colSpan={5} className="px-6 py-8 text-center text-zinc-500">No se encontraron equipos.</td></tr>
+                                ) : (
+                                    processedEquipos.map((eq) => {
+                                        const idx = eq.originalIndex;
+                                        return (
+                                        <tr key={idx} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer group" onClick={() => setSelectedEquipmentIndex(idx)}>
+                                            <td className="px-6 py-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 bg-zinc-100 dark:bg-zinc-800 rounded flex items-center justify-center shrink-0 overflow-hidden">
+                                                        {eq.Fotografias?.[0] ? <img src={eq.Fotografias[0]} alt="eq" className="w-full h-full object-cover"/> : <Cpu size={16} className="text-zinc-400"/>}
+                                                    </div>
+                                                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">{eq["NOMBRE DEL EQUIPO"] || "Sin nombre"}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-3 text-zinc-600 dark:text-zinc-400">
+                                                {eq.infoEquipo?.Marca || "-"} {eq.infoEquipo?.Modelo || ""}
+                                            </td>
+                                            <td className="px-6 py-3">
+                                                <span className="bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded text-xs font-mono">{eq["Nº DE EQUIPOS"] || "0"}</span>
+                                            </td>
+                                            <td className="px-6 py-3">
+                                                <span className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded text-xs font-mono">{(eq.HojasDeVidaEquipos || []).length}</span>
+                                            </td>
+                                            <td className="px-6 py-3 text-right">
+                                                 <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                     {/* Reorder only if no filter/sort */}
+                                                     {(!eqFilters.name && !eqFilters.model && !eqFilters.qty && !eqFilters.inv && !eqSortConfig) && (
+                                                         <div className="flex mr-1 bg-zinc-100 dark:bg-zinc-800 rounded">
+                                                            <Button variant="icon" action="primary" size="icon-md" onClick={(e) => moveEquipmentOrder(idx, 'UP', e)} disabled={idx === 0}><ArrowUp size={14} /></Button>
+                                                            <Button variant="icon" action="primary" size="icon-md" onClick={(e) => moveEquipmentOrder(idx, 'DOWN', e)} disabled={idx === (formData.equipos || []).length - 1}><ArrowDown size={14} /></Button>
+                                                         </div>
+                                                     )}
+                                                     <Button variant="icon" action="primary" size="icon-md" onClick={(e) => openMoveModal(idx, e)} title="Mover"><ArrowRightLeft size={16}/></Button>
+                                                     <Button variant="icon" action="primary" size="icon-md" onClick={(e) => duplicateEquipment(idx, e)} title="Duplicar"><Copy size={16}/></Button>
+                                                     <Button variant="icon" action="danger" size="icon-md" onClick={(e) => deleteEquipment(idx, e)} title="Eliminar"><Trash2 size={16}/></Button>
+                                                 </div>
+                                            </td>
+                                        </tr>
+                                    )})
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </CardContent>
+            </Card>
           </div>
         )}
 
+        {/* --- TAB: SOFTWARE (TABLE VIEW) --- */}
         {activeTab === 'SOFTWARE' && (
           <div className="space-y-4">
-             <div className="flex flex-col md:flex-row justify-between gap-4 items-center">
-                <div className="flex gap-2 flex-1 w-full md:w-auto">
-                    <div className="relative flex-1 max-w-sm">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-400" />
-                        <Input 
-                            placeholder="Buscar software..." 
-                            value={swSearch} 
-                            onChange={(e) => setSwSearch(e.target.value)}
-                            className="pl-9"
-                        />
-                         {swSearch && (
-                            <button 
-                                onClick={() => setSwSearch("")}
-                                className="absolute right-2.5 top-2.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
-                            >
-                                <X size={16} />
-                            </button>
-                        )}
-                    </div>
-                     <Button 
-                        variant="secondary" 
-                        onClick={() => toggleSort(swSort, setSwSort)}
-                        className="gap-2"
-                        title="Cambiar orden"
-                     >
-                        <ArrowUpDown size={16}/>
-                        <span className="hidden sm:inline text-xs">{getSortLabel(swSort)}</span>
-                    </Button>
-                </div>
+            <div className="flex justify-between items-center">
+                 <h3 className="font-bold text-lg">Licencias de Software</h3>
                 <Button onClick={addMockSoftware} size="sm"><Plus size={16} className="mr-2"/> Añadir Software</Button>
             </div>
-             <div className="grid gap-4">
-              {processedSoftware.length === 0 && (
-                   <div className="text-center py-10 text-zinc-500 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-lg">
-                      {swSearch ? "No se encontraron programas con ese criterio." : "No hay software registrado."}
-                  </div>
-              )}
-              {processedSoftware.map((sw) => {
-                const idx = sw.originalIndex;
-                return (
-                <Card key={idx} className="cursor-pointer hover:border-purple-500 dark:hover:border-purple-400 transition-colors group">
-                  <CardContent className="p-4" onClick={() => setSelectedSoftwareIndex(idx)}>
-                     <div className="flex justify-between items-start">
-                        <div className="flex gap-4">
-                          <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded flex items-center justify-center text-purple-600 dark:text-purple-300 overflow-hidden shrink-0">
-                              {sw.Fotografias?.[0] ? <img src={sw.Fotografias[0]} alt="sw" className="w-full h-full object-cover"/> : <HardDrive size={24} />}
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-lg">{sw["NOMBRE DEL SOFTWARE"] || "Software sin nombre"}</h4>
-                            <div className="text-sm text-zinc-500 flex gap-3 mt-1">
-                              <span>v{sw["VERSIÓN"] || "?"}</span>
-                              <span>•</span>
-                              <span>{sw["Nº DE LICENCIAS"] || "0"} Licencias</span>
-                            </div>
-                          </div>
-                        </div>
-                         <div className="flex gap-1">
-                             <Button variant="icon" action="primary" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => openMoveSoftwareModal(idx, e)} title="Mover Software">
-                                <ArrowRightLeft size={16} />
-                            </Button>
-                             <Button variant="icon" action="primary" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => duplicateSoftware(idx, e)} title="Duplicar">
-                                <Copy size={16}/>
-                             </Button>
-                             <Button variant="icon" action="danger" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => deleteSoftware(idx, e)} title="Eliminar">
-                                <Trash2 size={16} />
-                             </Button>
-                         </div>
+
+            <Card className="overflow-hidden">
+                <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 border-b border-zinc-200 dark:border-zinc-700">
+                                <tr>
+                                    <th className="px-6 py-3 font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700" onClick={() => handleSwSort('NOMBRE DEL SOFTWARE')}>
+                                        <div className="flex items-center gap-2">Software {renderSortIcon('NOMBRE DEL SOFTWARE', swSortConfig)}</div>
+                                    </th>
+                                    <th className="px-6 py-3 font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 w-24" onClick={() => handleSwSort('VERSIÓN')}>
+                                        <div className="flex items-center gap-2">Ver {renderSortIcon('VERSIÓN', swSortConfig)}</div>
+                                    </th>
+                                    <th className="px-6 py-3 font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 w-24" onClick={() => handleSwSort('Nº DE LICENCIAS')}>
+                                        <div className="flex items-center gap-2">Lic {renderSortIcon('Nº DE LICENCIAS', swSortConfig)}</div>
+                                    </th>
+                                    <th className="px-6 py-3 font-medium cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700" onClick={() => handleSwSort('TIPO DE LICENCIA')}>
+                                        <div className="flex items-center gap-2">Tipo {renderSortIcon('TIPO DE LICENCIA', swSortConfig)}</div>
+                                    </th>
+                                    <th className="px-6 py-3 font-medium text-right">Acciones</th>
+                                </tr>
+                                <tr className="bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                                    <th className="px-4 py-2">
+                                        <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Filtro nombre..." value={swFilters.name} onChange={e => setSwFilters({...swFilters, name: e.target.value})} />
+                                    </th>
+                                    <th className="px-4 py-2">
+                                        <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="v..." value={swFilters.version} onChange={e => setSwFilters({...swFilters, version: e.target.value})} />
+                                    </th>
+                                    <th className="px-4 py-2">
+                                        <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="#" value={swFilters.licenses} onChange={e => setSwFilters({...swFilters, licenses: e.target.value})} />
+                                    </th>
+                                    <th className="px-4 py-2">
+                                        <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Tipo..." value={swFilters.type} onChange={e => setSwFilters({...swFilters, type: e.target.value})} />
+                                    </th>
+                                    <th className="px-4 py-2"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
+                                {processedSoftware.length === 0 ? (
+                                    <tr><td colSpan={5} className="px-6 py-8 text-center text-zinc-500">No se encontraron programas.</td></tr>
+                                ) : (
+                                    processedSoftware.map((sw) => {
+                                        const idx = sw.originalIndex;
+                                        return (
+                                        <tr key={idx} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer group" onClick={() => setSelectedSoftwareIndex(idx)}>
+                                            <td className="px-6 py-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded flex items-center justify-center text-purple-600 dark:text-purple-300 overflow-hidden shrink-0">
+                                                        {sw.Fotografias?.[0] ? <img src={sw.Fotografias[0]} alt="sw" className="w-full h-full object-cover"/> : <HardDrive size={16} />}
+                                                    </div>
+                                                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">{sw["NOMBRE DEL SOFTWARE"] || "Sin nombre"}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-3 text-zinc-600 dark:text-zinc-400 font-mono text-xs">
+                                                v{sw["VERSIÓN"] || "?"}
+                                            </td>
+                                            <td className="px-6 py-3">
+                                                <span className="bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded text-xs font-mono">{sw["Nº DE LICENCIAS"] || "0"}</span>
+                                            </td>
+                                            <td className="px-6 py-3 text-zinc-500 text-xs">
+                                                {sw["TIPO DE LICENCIA"] || "-"}
+                                            </td>
+                                            <td className="px-6 py-3 text-right">
+                                                 <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                     <Button variant="icon" action="primary" size="icon-md" onClick={(e) => openMoveSoftwareModal(idx, e)} title="Mover"><ArrowRightLeft size={16}/></Button>
+                                                     <Button variant="icon" action="primary" size="icon-md" onClick={(e) => duplicateSoftware(idx, e)} title="Duplicar"><Copy size={16}/></Button>
+                                                     <Button variant="icon" action="danger" size="icon-md" onClick={(e) => deleteSoftware(idx, e)} title="Eliminar"><Trash2 size={16}/></Button>
+                                                 </div>
+                                            </td>
+                                        </tr>
+                                    )})
+                                )}
+                            </tbody>
+                        </table>
                     </div>
-                  </CardContent>
-                </Card>
-              )})}
-            </div>
+                </CardContent>
+            </Card>
           </div>
         )}
       </div>

@@ -5,7 +5,7 @@ import { Input } from '../ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
 import { ImageViewer } from '../ui/ImageViewer';
-import { ArrowLeft, Plus, Trash2, Save, Wrench, ClipboardList, Box, History, FileText, Copy, Camera, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, X, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Wrench, ClipboardList, Box, History, FileText, Copy, Camera, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, X, ExternalLink, ChevronUp, ChevronDown, ListFilter } from 'lucide-react';
 
 interface EquipmentDetailProps {
   equipment: Equipo;
@@ -510,41 +510,39 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
   }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
 
   // Table State
-  const [searchTerm, setSearchTerm] = useState("");
+  const [filters, setFilters] = useState({
+      code: "",
+      location: "",
+      date: "",
+      maint: ""
+  });
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
-  const [filterLocation, setFilterLocation] = useState<string>("");
-
-  const uniqueLocations = useMemo(() => {
-      const locs = new Set<string>();
-      (formData.HojasDeVidaEquipos || []).forEach(u => {
-          if (u.infoEquipo?.Ubicación) locs.add(u.infoEquipo.Ubicación);
-      });
-      return Array.from(locs).sort();
-  }, [formData.HojasDeVidaEquipos]);
 
   const getProcessedUnits = () => {
       let units = (formData.HojasDeVidaEquipos || []).map((u, i) => ({ ...u, originalIndex: i }));
 
-      // Filter
-      if (filterLocation) {
-          units = units.filter(u => u.infoEquipo?.Ubicación === filterLocation);
+      // Filters
+      if (filters.code) {
+          const lower = filters.code.toLowerCase();
+          units = units.filter(u => u.infoEquipo?.["Codigo Inventario Equipo"]?.toLowerCase().includes(lower));
       }
-
-      // Search
-      if (searchTerm) {
-          const lower = searchTerm.toLowerCase();
-          units = units.filter(u => 
-             u.infoEquipo?.["Codigo Inventario Equipo"]?.toLowerCase().includes(lower) ||
-             u.infoEquipo?.Ubicación?.toLowerCase().includes(lower) ||
-             u.nota?.toLowerCase().includes(lower)
-          );
+      if (filters.location) {
+          const lower = filters.location.toLowerCase();
+          units = units.filter(u => u.infoEquipo?.Ubicación?.toLowerCase().includes(lower));
+      }
+      if (filters.date) {
+          const lower = filters.date.toLowerCase();
+          units = units.filter(u => u.infoEquipo?.["FECHA DE ADQUISICIÓN"]?.toLowerCase().includes(lower));
+      }
+      if (filters.maint) {
+          units = units.filter(u => (u.mantenimientos || []).length.toString().includes(filters.maint));
       }
 
       // Sort
       if (sortConfig) {
           units.sort((a, b) => {
-              let valA = "";
-              let valB = "";
+              let valA: any = "";
+              let valB: any = "";
 
               if (sortConfig.key === 'code') {
                   valA = a.infoEquipo?.["Codigo Inventario Equipo"] || "";
@@ -556,9 +554,8 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
                   valA = a.infoEquipo?.["FECHA DE ADQUISICIÓN"] || "";
                   valB = b.infoEquipo?.["FECHA DE ADQUISICIÓN"] || "";
               } else if (sortConfig.key === 'maint') {
-                  return sortConfig.direction === 'asc' 
-                    ? (a.mantenimientos || []).length - (b.mantenimientos || []).length 
-                    : (b.mantenimientos || []).length - (a.mantenimientos || []).length;
+                  valA = (a.mantenimientos || []).length;
+                  valB = (b.mantenimientos || []).length;
               }
 
               if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
@@ -578,10 +575,9 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
       setSortConfig({ key, direction });
   };
   
-  const clearFilters = () => {
-      setSearchTerm("");
-      setFilterLocation("");
-      setSortConfig(null);
+  const renderSortIcon = (key: string) => {
+      if (sortConfig?.key !== key) return <ListFilter size={12} className="opacity-30" />;
+      return sortConfig.direction === 'asc' ? <ChevronUp size={14} className="text-blue-500"/> : <ChevronDown size={14} className="text-blue-500"/>;
   };
 
   const addUnit = () => {
@@ -650,83 +646,67 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
   }
 
   const processedUnits = getProcessedUnits();
-  const isReorderDisabled = !!searchTerm || !!filterLocation || !!sortConfig;
+  const isReorderDisabled = !!filters.code || !!filters.location || !!filters.date || !!filters.maint || !!sortConfig;
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
         <CardHeader>
             <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
                 <CardTitle>Inventario de Unidades</CardTitle>
                 <Button onClick={addUnit}><Plus size={16} className="mr-2"/> Nueva Unidad</Button>
             </div>
-            
-            {/* Toolbar */}
-            <div className="flex flex-col md:flex-row gap-4 pt-4 mt-2 border-t border-zinc-100 dark:border-zinc-800">
-                <div className="relative flex-1">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-400" />
-                    <Input 
-                        placeholder="Buscar por código, ubicación..." 
-                        value={searchTerm} 
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9"
-                    />
-                </div>
-                <div className="flex gap-2">
-                    <div className="relative w-48">
-                        <Filter className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-400" />
-                        <select 
-                            className="w-full h-10 pl-9 pr-3 rounded-md border border-zinc-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-                            value={filterLocation}
-                            onChange={(e) => setFilterLocation(e.target.value)}
-                        >
-                            <option value="">Todas las ubicaciones</option>
-                            {uniqueLocations.map(loc => (
-                                <option key={loc} value={loc}>{loc}</option>
-                            ))}
-                        </select>
-                    </div>
-                    {(searchTerm || filterLocation || sortConfig) && (
-                        <Button variant="ghost" onClick={clearFilters} title="Limpiar filtros" className="px-2">
-                            <X size={16} />
-                        </Button>
-                    )}
-                </div>
-            </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                    <thead className="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 uppercase">
+                    <thead className="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 border-b border-zinc-200 dark:border-zinc-700">
+                        {/* Headers */}
                         <tr>
-                            <th className="px-4 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('code')}>
-                                <div className="flex items-center gap-2">Código <ArrowUpDown size={12}/></div>
+                            <th className="px-6 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('code')}>
+                                <div className="flex items-center gap-2">Código {renderSortIcon('code')}</div>
                             </th>
-                            <th className="px-4 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('location')}>
-                                <div className="flex items-center gap-2">Ubicación <ArrowUpDown size={12}/></div>
+                            <th className="px-6 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('location')}>
+                                <div className="flex items-center gap-2">Ubicación {renderSortIcon('location')}</div>
                             </th>
-                            <th className="px-4 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('date')}>
-                                <div className="flex items-center gap-2">Adquisición <ArrowUpDown size={12}/></div>
+                            <th className="px-6 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('date')}>
+                                <div className="flex items-center gap-2">Adquisición {renderSortIcon('date')}</div>
                             </th>
-                            <th className="px-4 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('maint')}>
-                                <div className="flex items-center gap-2">Mantenimientos <ArrowUpDown size={12}/></div>
+                            <th className="px-6 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('maint')}>
+                                <div className="flex items-center gap-2">Mantenimientos {renderSortIcon('maint')}</div>
                             </th>
-                            <th className="px-4 py-3 text-right">Acciones</th>
+                            <th className="px-6 py-3 text-right">Acciones</th>
+                        </tr>
+                        {/* Filters */}
+                        <tr className="bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                            <th className="px-4 py-2">
+                                <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Filtro código..." value={filters.code} onChange={e => setFilters({...filters, code: e.target.value})} />
+                            </th>
+                            <th className="px-4 py-2">
+                                <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Filtro ubicación..." value={filters.location} onChange={e => setFilters({...filters, location: e.target.value})} />
+                            </th>
+                            <th className="px-4 py-2">
+                                <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Filtro fecha..." value={filters.date} onChange={e => setFilters({...filters, date: e.target.value})} />
+                            </th>
+                            <th className="px-4 py-2">
+                                <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="#" value={filters.maint} onChange={e => setFilters({...filters, maint: e.target.value})} />
+                            </th>
+                            <th className="px-4 py-2"></th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
                         {processedUnits.length === 0 && (
-                            <tr><td colSpan={5} className="px-4 py-8 text-center text-zinc-500">No se encontraron unidades.</td></tr>
+                            <tr><td colSpan={5} className="px-6 py-8 text-center text-zinc-500">No se encontraron unidades.</td></tr>
                         )}
                         {processedUnits.map((item, idx) => (
                             <tr key={item.originalIndex} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => setSelectedUnitIndex(item.originalIndex)}>
-                                <td className="px-4 py-3 font-medium">{item.infoEquipo?.["Codigo Inventario Equipo"] || "Sin Código"}</td>
-                                <td className="px-4 py-3">{item.infoEquipo?.Ubicación || "-"}</td>
-                                <td className="px-4 py-3">{item.infoEquipo?.["FECHA DE ADQUISICIÓN"] || "-"}</td>
-                                <td className="px-4 py-3"><span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-100">{(item.mantenimientos || []).length} regs</span></td>
-                                <td className="px-4 py-3 text-right">
+                                <td className="px-6 py-3 font-medium font-mono">{item.infoEquipo?.["Codigo Inventario Equipo"] || "Sin Código"}</td>
+                                <td className="px-6 py-3">{item.infoEquipo?.Ubicación || "-"}</td>
+                                <td className="px-6 py-3">{item.infoEquipo?.["FECHA DE ADQUISICIÓN"] || "-"}</td>
+                                <td className="px-6 py-3"><span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-100">{(item.mantenimientos || []).length} regs</span></td>
+                                <td className="px-6 py-3 text-right">
                                     <div className="flex justify-end items-center gap-1">
                                         {!isReorderDisabled && (
-                                            <div className="flex gap-1 mr-2">
+                                            <div className="flex gap-1 mr-2 bg-zinc-100 dark:bg-zinc-800 rounded">
                                                 <Button variant="icon" action="primary" size="icon-md" onClick={(e) => { e.stopPropagation(); moveUnit(item.originalIndex, 'UP'); }} disabled={idx === 0}>
                                                     <ArrowUp size={14} />
                                                 </Button>
@@ -735,10 +715,10 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
                                                 </Button>
                                             </div>
                                         )}
-                                        <Button variant="icon" action="primary" onClick={(e) => { e.stopPropagation(); duplicateUnit(item.originalIndex); }} title="Duplicar">
+                                        <Button variant="icon" action="primary" size="icon-md" onClick={(e) => { e.stopPropagation(); duplicateUnit(item.originalIndex); }} title="Duplicar">
                                             <Copy size={16}/>
                                         </Button>
-                                        <Button variant="icon" action="danger" onClick={(e) => { e.stopPropagation(); deleteUnit(item.originalIndex); }} title="Eliminar">
+                                        <Button variant="icon" action="danger" size="icon-md" onClick={(e) => { e.stopPropagation(); deleteUnit(item.originalIndex); }} title="Eliminar">
                                             <Trash2 size={16}/>
                                         </Button>
                                     </div>
@@ -749,7 +729,7 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
                 </table>
             </div>
             {isReorderDisabled && processedUnits.length > 0 && (
-                <p className="text-xs text-zinc-400 mt-2 text-right">* El reordenamiento está desactivado mientras los filtros u ordenamiento estén activos.</p>
+                <p className="text-xs text-zinc-400 mt-2 px-6 pb-2 text-right">* El reordenamiento está desactivado mientras los filtros u ordenamiento estén activos.</p>
             )}
         </CardContent>
 
