@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Lab, Equipo, Software, PersonalInfo, Documento } from '../../types';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
 import { ImageViewer } from '../ui/ImageViewer';
-import { ArrowLeft, Plus, Trash2, Save, Cpu, HardDrive, Users, UserCheck, UserCog, GraduationCap, Copy, ArrowRightLeft, Image as ImageIcon, ArrowUp, ArrowDown, FileText, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Cpu, HardDrive, Users, UserCheck, UserCog, GraduationCap, Copy, ArrowRightLeft, Image as ImageIcon, ArrowUp, ArrowDown, FileText, ExternalLink, Search, ArrowUpDown, X } from 'lucide-react';
 import { EquipmentDetail } from './EquipmentDetail';
 import { SoftwareDetail } from './SoftwareDetail';
 
@@ -20,6 +20,7 @@ interface LabDetailProps {
 }
 
 type Tab = 'INFO' | 'EQUIPOS' | 'SOFTWARE';
+type SortOption = 'NAME_ASC' | 'NAME_DESC' | 'QTY_ASC' | 'QTY_DESC';
 
 export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIndex, onBack, onUpdate, onMoveEquipment, onMoveSoftware }) => {
   const [activeTab, setActiveTab] = useState<Tab>('INFO');
@@ -29,6 +30,12 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
   // Navigation State
   const [selectedEquipmentIndex, setSelectedEquipmentIndex] = useState<number | null>(null);
   const [selectedSoftwareIndex, setSelectedSoftwareIndex] = useState<number | null>(null);
+
+  // Filter & Sort State
+  const [eqSearch, setEqSearch] = useState("");
+  const [eqSort, setEqSort] = useState<SortOption>('NAME_ASC');
+  const [swSearch, setSwSearch] = useState("");
+  const [swSort, setSwSort] = useState<SortOption>('NAME_ASC');
 
   // Photo Modals State
   const [labPhotoModalOpen, setLabPhotoModalOpen] = useState(false);
@@ -59,6 +66,87 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
   React.useEffect(() => {
     setFormData(lab);
   }, [lab]);
+
+  // --- PROCESSING LISTS (FILTER/SORT) ---
+  const processedEquipos = useMemo(() => {
+    let items = (formData.equipos || []).map((item, index) => ({ ...item, originalIndex: index }));
+    
+    // Search
+    if (eqSearch.trim()) {
+        const lower = eqSearch.toLowerCase();
+        items = items.filter(item => 
+            (item["NOMBRE DEL EQUIPO"] || "").toLowerCase().includes(lower) ||
+            (item.infoEquipo?.Marca || "").toLowerCase().includes(lower) ||
+            (item.infoEquipo?.Modelo || "").toLowerCase().includes(lower)
+        );
+    }
+
+    // Sort
+    items.sort((a, b) => {
+        const nameA = (a["NOMBRE DEL EQUIPO"] || "").toLowerCase();
+        const nameB = (b["NOMBRE DEL EQUIPO"] || "").toLowerCase();
+        const qtyA = parseInt(a["Nº DE EQUIPOS"] || "0");
+        const qtyB = parseInt(b["Nº DE EQUIPOS"] || "0");
+
+        switch (eqSort) {
+            case 'NAME_ASC': return nameA.localeCompare(nameB);
+            case 'NAME_DESC': return nameB.localeCompare(nameA);
+            case 'QTY_ASC': return qtyA - qtyB;
+            case 'QTY_DESC': return qtyB - qtyA;
+            default: return 0;
+        }
+    });
+
+    return items;
+  }, [formData.equipos, eqSearch, eqSort]);
+
+  const processedSoftware = useMemo(() => {
+      let items = (formData.software || []).map((item, index) => ({ ...item, originalIndex: index }));
+
+      // Search
+      if (swSearch.trim()) {
+          const lower = swSearch.toLowerCase();
+          items = items.filter(item => 
+              (item["NOMBRE DEL SOFTWARE"] || "").toLowerCase().includes(lower) ||
+              (item["TIPO DE LICENCIA"] || "").toLowerCase().includes(lower)
+          );
+      }
+
+      // Sort
+      items.sort((a, b) => {
+          const nameA = (a["NOMBRE DEL SOFTWARE"] || "").toLowerCase();
+          const nameB = (b["NOMBRE DEL SOFTWARE"] || "").toLowerCase();
+          const qtyA = parseInt(a["Nº DE LICENCIAS"] || "0");
+          const qtyB = parseInt(b["Nº DE LICENCIAS"] || "0");
+
+          switch (swSort) {
+            case 'NAME_ASC': return nameA.localeCompare(nameB);
+            case 'NAME_DESC': return nameB.localeCompare(nameA);
+            case 'QTY_ASC': return qtyA - qtyB;
+            case 'QTY_DESC': return qtyB - qtyA;
+            default: return 0;
+        }
+      });
+
+      return items;
+  }, [formData.software, swSearch, swSort]);
+
+  const toggleSort = (current: SortOption, setSort: (s: SortOption) => void) => {
+      if (current === 'NAME_ASC') setSort('NAME_DESC');
+      else if (current === 'NAME_DESC') setSort('QTY_DESC');
+      else if (current === 'QTY_DESC') setSort('QTY_ASC');
+      else setSort('NAME_ASC');
+  };
+
+  const getSortLabel = (sort: SortOption) => {
+      switch(sort) {
+          case 'NAME_ASC': return "Nombre A-Z";
+          case 'NAME_DESC': return "Nombre Z-A";
+          case 'QTY_DESC': return "Mayor Cantidad";
+          case 'QTY_ASC': return "Menor Cantidad";
+      }
+  };
+
 
   // --- GENERAL INFO LOGIC ---
   const handleChange = (section: keyof Lab['infoAmbiente'], value: string) => {
@@ -256,6 +344,7 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
     const newLabs = { ...formData, equipos: [...(formData.equipos || []), newEq] };
     setFormData(newLabs);
     onUpdate(newLabs);
+    setEqSearch("");
     setSelectedEquipmentIndex((newLabs.equipos || []).length - 1);
   };
 
@@ -351,6 +440,7 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
       const newLabs = { ...formData, software: [...(formData.software || []), newSw] };
       setFormData(newLabs);
       onUpdate(newLabs);
+      setSwSearch("");
       setSelectedSoftwareIndex((newLabs.software || []).length - 1);
   };
 
@@ -678,12 +768,46 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
 
         {activeTab === 'EQUIPOS' && (
           <div className="space-y-4">
-            <div className="flex justify-end">
+            <div className="flex flex-col md:flex-row justify-between gap-4 items-center">
+                 <div className="flex gap-2 flex-1 w-full md:w-auto">
+                    <div className="relative flex-1 max-w-sm">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-400" />
+                        <Input 
+                            placeholder="Buscar equipo..." 
+                            value={eqSearch} 
+                            onChange={(e) => setEqSearch(e.target.value)}
+                            className="pl-9"
+                        />
+                         {eqSearch && (
+                            <button 
+                                onClick={() => setEqSearch("")}
+                                className="absolute right-2.5 top-2.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                            >
+                                <X size={16} />
+                            </button>
+                        )}
+                    </div>
+                     <Button 
+                        variant="secondary" 
+                        onClick={() => toggleSort(eqSort, setEqSort)}
+                        className="gap-2"
+                        title="Cambiar orden"
+                     >
+                        <ArrowUpDown size={16}/>
+                        <span className="hidden sm:inline text-xs">{getSortLabel(eqSort)}</span>
+                    </Button>
+                 </div>
                 <Button onClick={addMockEquipment} size="sm"><Plus size={16} className="mr-2"/> Añadir Equipo</Button>
             </div>
             <div className="grid gap-4">
-              {(formData.equipos || []).length === 0 && <div className="text-zinc-500 text-center py-8 bg-zinc-50 dark:bg-zinc-900 rounded-lg">No hay equipos registrados.</div>}
-              {(formData.equipos || []).map((eq, idx) => (
+              {processedEquipos.length === 0 && (
+                  <div className="text-center py-10 text-zinc-500 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-lg">
+                      {eqSearch ? "No se encontraron equipos con ese criterio." : "No hay equipos registrados."}
+                  </div>
+              )}
+              {processedEquipos.map((eq) => {
+                const idx = eq.originalIndex;
+                return (
                 <Card key={idx} className="cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-colors group">
                   <CardContent className="p-4" onClick={() => setSelectedEquipmentIndex(idx)}>
                      <div className="flex justify-between items-start">
@@ -697,15 +821,17 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
                            </div>
                         </div>
                         <div className="flex gap-1 items-center">
-                             {/* Reorder Buttons */}
-                             <div className="flex mr-1 bg-zinc-100 dark:bg-zinc-800 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button variant="icon" action="primary" size="icon-md" onClick={(e) => moveEquipmentOrder(idx, 'UP', e)} disabled={idx === 0} title="Mover arriba">
-                                    <ArrowUp size={16} />
-                                </Button>
-                                <Button variant="icon" action="primary" size="icon-md" onClick={(e) => moveEquipmentOrder(idx, 'DOWN', e)} disabled={idx === (formData.equipos || []).length - 1} title="Mover abajo">
-                                    <ArrowDown size={16} />
-                                </Button>
-                             </div>
+                             {/* Reorder Buttons (Only visible if no sort/search applied) */}
+                             {!eqSearch && eqSort === 'NAME_ASC' && (
+                                 <div className="flex mr-1 bg-zinc-100 dark:bg-zinc-800 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button variant="icon" action="primary" size="icon-md" onClick={(e) => moveEquipmentOrder(idx, 'UP', e)} disabled={idx === 0} title="Mover arriba">
+                                        <ArrowUp size={16} />
+                                    </Button>
+                                    <Button variant="icon" action="primary" size="icon-md" onClick={(e) => moveEquipmentOrder(idx, 'DOWN', e)} disabled={idx === (formData.equipos || []).length - 1} title="Mover abajo">
+                                        <ArrowDown size={16} />
+                                    </Button>
+                                 </div>
+                             )}
 
                              <Button variant="icon" action="primary" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => openMoveModal(idx, e)} title="Mover Equipo">
                                 <ArrowRightLeft size={16} />
@@ -724,19 +850,53 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
                      </div>
                   </CardContent>
                 </Card>
-              ))}
+              )})}
             </div>
           </div>
         )}
 
         {activeTab === 'SOFTWARE' && (
           <div className="space-y-4">
-             <div className="flex justify-end">
+             <div className="flex flex-col md:flex-row justify-between gap-4 items-center">
+                <div className="flex gap-2 flex-1 w-full md:w-auto">
+                    <div className="relative flex-1 max-w-sm">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-400" />
+                        <Input 
+                            placeholder="Buscar software..." 
+                            value={swSearch} 
+                            onChange={(e) => setSwSearch(e.target.value)}
+                            className="pl-9"
+                        />
+                         {swSearch && (
+                            <button 
+                                onClick={() => setSwSearch("")}
+                                className="absolute right-2.5 top-2.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                            >
+                                <X size={16} />
+                            </button>
+                        )}
+                    </div>
+                     <Button 
+                        variant="secondary" 
+                        onClick={() => toggleSort(swSort, setSwSort)}
+                        className="gap-2"
+                        title="Cambiar orden"
+                     >
+                        <ArrowUpDown size={16}/>
+                        <span className="hidden sm:inline text-xs">{getSortLabel(swSort)}</span>
+                    </Button>
+                </div>
                 <Button onClick={addMockSoftware} size="sm"><Plus size={16} className="mr-2"/> Añadir Software</Button>
             </div>
              <div className="grid gap-4">
-              {(formData.software || []).length === 0 && <div className="text-zinc-500 text-center py-8 bg-zinc-50 dark:bg-zinc-900 rounded-lg">No hay software registrado.</div>}
-              {(formData.software || []).map((sw, idx) => (
+              {processedSoftware.length === 0 && (
+                   <div className="text-center py-10 text-zinc-500 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-lg">
+                      {swSearch ? "No se encontraron programas con ese criterio." : "No hay software registrado."}
+                  </div>
+              )}
+              {processedSoftware.map((sw) => {
+                const idx = sw.originalIndex;
+                return (
                 <Card key={idx} className="cursor-pointer hover:border-purple-500 dark:hover:border-purple-400 transition-colors group">
                   <CardContent className="p-4" onClick={() => setSelectedSoftwareIndex(idx)}>
                      <div className="flex justify-between items-start">
@@ -767,7 +927,7 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              )})}
             </div>
           </div>
         )}
