@@ -522,7 +522,11 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
                         {getPrograms().map((prog, idx) => (
                             <div key={idx} className="flex gap-2">
                                 <Input value={prog} onChange={(e) => updateProgram(idx, e.target.value)} disabled={!isEditing} placeholder="Código Programa (ej. P13)" />
-                                {isEditing && <Button variant="ghost" className="text-red-500" onClick={() => removeProgram(idx)}><Trash2 size={16}/></Button>}
+                                {isEditing && (
+                                   <Button variant="icon" action="danger" size="sm" onClick={() => removeProgram(idx)}>
+                                     <Trash2 size={16}/>
+                                   </Button>
+                                )}
                             </div>
                         ))}
                         {getPrograms().length === 0 && <p className="text-sm text-zinc-500 italic">No hay programas asignados.</p>}
@@ -541,12 +545,11 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
                                 <div key={idx} className="relative group aspect-square bg-zinc-100 dark:bg-zinc-800 rounded-md overflow-hidden border border-zinc-200 dark:border-zinc-700 cursor-zoom-in" onClick={() => setZoomedImage(photo)}>
                                     <img src={photo} alt="Lab" className="w-full h-full object-cover transition-transform hover:scale-105" />
                                     {isEditing && (
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); removeLabPhoto(idx); }}
-                                            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <Trash2 size={12}/>
-                                        </button>
+                                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button variant="icon" action="danger" size="icon-sm" className="bg-white/80 hover:bg-white dark:bg-black/50 dark:hover:bg-black/80" onClick={(e) => { e.stopPropagation(); removeLabPhoto(idx); }}>
+                                                <Trash2 size={12}/>
+                                            </Button>
+                                        </div>
                                     )}
                                 </div>
                             ))}
@@ -597,20 +600,16 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
                                             href={doc.url} 
                                             target="_blank" 
                                             rel="noopener noreferrer"
-                                            className="p-2 text-zinc-500 hover:text-blue-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
-                                            title="Abrir enlace"
                                         >
-                                            <ExternalLink size={16} />
+                                            <Button variant="icon" action="primary" title="Abrir enlace">
+                                                <ExternalLink size={16} />
+                                            </Button>
                                         </a>
                                     )}
                                     {isEditing && (
-                                        <button 
-                                            onClick={() => removeDocument(idx)} 
-                                            className="p-2 text-zinc-500 hover:text-red-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
-                                            title="Eliminar"
-                                        >
+                                        <Button variant="icon" action="danger" onClick={() => removeDocument(idx)} title="Eliminar">
                                             <Trash2 size={16}/>
-                                        </button>
+                                        </Button>
                                     )}
                                 </div>
                             </div>
@@ -655,12 +654,11 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
                                     <Input placeholder="Contacto" value={staff["NUMERO DE CONTACTO"]} onChange={(e) => updateTechStaff(idx, 'NUMERO DE CONTACTO', e.target.value)} disabled={!isEditing} className="text-sm" />
                                 </div>
                                 {isEditing && (
-                                    <button 
-                                        onClick={() => removeTechStaff(idx)}
-                                        className="absolute top-2 right-2 text-zinc-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
+                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button variant="icon" action="danger" size="icon-sm" onClick={() => removeTechStaff(idx)}>
+                                            <Trash2 size={14} />
+                                        </Button>
+                                    </div>
                                 )}
                             </div>
                         ))}
@@ -698,34 +696,24 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
                                <p className="text-sm text-zinc-500">{eq.infoEquipo?.Marca} {eq.infoEquipo?.Modelo}</p>
                            </div>
                         </div>
-                        <div className="flex gap-2 items-center">
+                        <div className="flex gap-1 items-center">
                              {/* Reorder Buttons */}
-                             <div className="flex mr-2 bg-zinc-100 dark:bg-zinc-800 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button 
-                                    onClick={(e) => moveEquipmentOrder(idx, 'UP', e)} 
-                                    disabled={idx === 0}
-                                    className="p-1.5 text-zinc-500 hover:text-blue-600 disabled:opacity-30"
-                                    title="Mover arriba"
-                                >
+                             <div className="flex mr-1 bg-zinc-100 dark:bg-zinc-800 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button variant="icon" action="primary" size="icon-md" onClick={(e) => moveEquipmentOrder(idx, 'UP', e)} disabled={idx === 0} title="Mover arriba">
                                     <ArrowUp size={16} />
-                                </button>
-                                <button 
-                                    onClick={(e) => moveEquipmentOrder(idx, 'DOWN', e)} 
-                                    disabled={idx === (formData.equipos || []).length - 1}
-                                    className="p-1.5 text-zinc-500 hover:text-blue-600 disabled:opacity-30"
-                                    title="Mover abajo"
-                                >
+                                </Button>
+                                <Button variant="icon" action="primary" size="icon-md" onClick={(e) => moveEquipmentOrder(idx, 'DOWN', e)} disabled={idx === (formData.equipos || []).length - 1} title="Mover abajo">
                                     <ArrowDown size={16} />
-                                </button>
+                                </Button>
                              </div>
 
-                             <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={(e) => openMoveModal(idx, e)} title="Mover Equipo">
+                             <Button variant="icon" action="primary" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => openMoveModal(idx, e)} title="Mover Equipo">
                                 <ArrowRightLeft size={16} />
                             </Button>
-                             <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => duplicateEquipment(idx, e)} title="Duplicar">
+                             <Button variant="icon" action="primary" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => duplicateEquipment(idx, e)} title="Duplicar">
                                 <Copy size={16} />
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => deleteEquipment(idx, e)} title="Eliminar">
+                            <Button variant="icon" action="danger" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => deleteEquipment(idx, e)} title="Eliminar">
                                 <Trash2 size={16} />
                             </Button>
                         </div>
@@ -765,14 +753,14 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
                             </div>
                           </div>
                         </div>
-                         <div className="flex gap-2">
-                             <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={(e) => openMoveSoftwareModal(idx, e)} title="Mover Software">
+                         <div className="flex gap-1">
+                             <Button variant="icon" action="primary" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => openMoveSoftwareModal(idx, e)} title="Mover Software">
                                 <ArrowRightLeft size={16} />
                             </Button>
-                             <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => duplicateSoftware(idx, e)} title="Duplicar">
+                             <Button variant="icon" action="primary" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => duplicateSoftware(idx, e)} title="Duplicar">
                                 <Copy size={16}/>
                              </Button>
-                             <Button variant="ghost" size="sm" className="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => deleteSoftware(idx, e)} title="Eliminar">
+                             <Button variant="icon" action="danger" className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => deleteSoftware(idx, e)} title="Eliminar">
                                 <Trash2 size={16} />
                              </Button>
                          </div>

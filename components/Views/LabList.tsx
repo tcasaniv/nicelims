@@ -27,14 +27,14 @@ export const LabList: React.FC<LabListProps> = ({ labs = [], onSelectLab, onDele
           </div>
         ) : (
           labs.map((lab, index) => (
-            <Card key={index} className="hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
+            <Card key={index} className="hover:border-blue-300 dark:hover:border-blue-700 transition-colors group">
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex-1 cursor-pointer" onClick={() => onSelectLab(index)}>
                   <div className="flex items-center gap-2">
                      <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-100 text-xs rounded font-mono">
                         {lab.infoAmbiente?.["CÓDIGO DE LABORATORIO O TALLER"] || "S/C"}
                      </span>
-                     <h3 className="font-semibold text-lg text-zinc-900 dark:text-zinc-100">
+                     <h3 className="font-semibold text-lg text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {lab.infoAmbiente?.["NOMBRE DEL LABORATORIO O TALLER"] || "Laboratorio sin nombre"}
                      </h3>
                   </div>
@@ -48,17 +48,17 @@ export const LabList: React.FC<LabListProps> = ({ labs = [], onSelectLab, onDele
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 ml-4">
-                  <Button variant="ghost" size="sm" onClick={() => onDuplicateLab(index)} title="Duplicar">
-                    <Copy size={16} />
+                <div className="flex items-center gap-1 ml-4">
+                  <Button variant="icon" action="primary" onClick={() => onDuplicateLab(index)} title="Duplicar">
+                    <Copy size={18} />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => onSelectLab(index)} title="Editar">
-                    <Edit size={16} />
+                  <Button variant="icon" action="primary" onClick={() => onSelectLab(index)} title="Editar">
+                    <Edit size={18} />
                   </Button>
-                  <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => onDeleteLab(index)} title="Eliminar">
-                    <Trash2 size={16} />
+                  <Button variant="icon" action="danger" onClick={() => onDeleteLab(index)} title="Eliminar">
+                    <Trash2 size={18} />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => onSelectLab(index)}>
+                  <Button variant="icon" onClick={() => onSelectLab(index)}>
                     <ChevronRight size={20} />
                   </Button>
                 </div>

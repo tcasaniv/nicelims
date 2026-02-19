@@ -125,12 +125,20 @@ export const SoftwareDetail: React.FC<SoftwareDetailProps> = ({ software, onUpda
                         {(formData.Fotografias || []).map((photo, idx) => (
                             <div key={idx} className="relative group aspect-video bg-zinc-100 dark:bg-zinc-800 rounded-md overflow-hidden border border-zinc-200 dark:border-zinc-700 cursor-zoom-in" onClick={() => setZoomedImage(photo)}>
                                 {photo ? <img src={photo} alt="Software" className="w-full h-full object-cover transition-transform hover:scale-105" /> : <div className="flex items-center justify-center h-full text-zinc-400">Sin Imagen</div>}
-                                <button 
-                                    onClick={(e) => { e.stopPropagation(); removePhoto(idx); }}
-                                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                    <Trash2 size={12}/>
-                                </button>
+                                <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button 
+                                        variant="icon" 
+                                        action="danger"
+                                        size="icon-sm"
+                                        className="bg-white/80 hover:bg-white dark:bg-black/50 dark:hover:bg-black/80"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            removePhoto(idx);
+                                        }}
+                                    >
+                                        <Trash2 size={12}/>
+                                    </Button>
+                                </div>
                             </div>
                         ))}
                         <button 
@@ -175,19 +183,15 @@ export const SoftwareDetail: React.FC<SoftwareDetailProps> = ({ software, onUpda
                                         href={doc.url} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
-                                        className="p-2 text-zinc-500 hover:text-blue-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
-                                        title="Abrir enlace"
                                     >
-                                        <ExternalLink size={16} />
+                                        <Button variant="icon" action="primary" title="Abrir enlace">
+                                            <ExternalLink size={16} />
+                                        </Button>
                                     </a>
                                 )}
-                                <button 
-                                    onClick={() => removeDocument(idx)} 
-                                    className="p-2 text-zinc-500 hover:text-red-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
-                                    title="Eliminar"
-                                >
+                                <Button variant="icon" action="danger" onClick={() => removeDocument(idx)} title="Eliminar">
                                     <Trash2 size={16}/>
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     ))}

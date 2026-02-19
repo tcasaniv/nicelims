@@ -172,7 +172,7 @@ const GeneralTab = ({ formData, setFormData, handleInfoChange }: { formData: Equ
                <div key={idx} className="flex gap-2 items-start">
                  <Input placeholder="Característica (ej. Potencia)" value={char.Caracteristica} onChange={e => updateCharacteristic(idx, 'Caracteristica', e.target.value)} className="flex-1" />
                  <Input placeholder="Descripción (ej. 500W)" value={char.Descripcion} onChange={e => updateCharacteristic(idx, 'Descripcion', e.target.value)} className="flex-1" />
-                 <Button variant="ghost" className="text-red-500" onClick={() => removeCharacteristic(idx)}><Trash2 size={16}/></Button>
+                 <Button variant="icon" action="danger" onClick={() => removeCharacteristic(idx)}><Trash2 size={16}/></Button>
                </div>
              ))}
              {(formData.caracteristicas || []).length === 0 && <p className="text-zinc-500 text-sm italic">Sin características registradas.</p>}
@@ -188,17 +188,22 @@ const GeneralTab = ({ formData, setFormData, handleInfoChange }: { formData: Equ
                     {(formData.Fotografias || []).map((photo, idx) => (
                         <div key={idx} className="relative group aspect-square bg-zinc-100 dark:bg-zinc-800 rounded-md overflow-hidden border border-zinc-200 dark:border-zinc-700 cursor-zoom-in" onClick={() => setZoomedImage(photo)}>
                             {photo ? <img src={photo} alt="Equipo" className="w-full h-full object-cover transition-transform hover:scale-105" /> : <div className="flex items-center justify-center h-full text-zinc-400">Sin Imagen</div>}
-                            <button 
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    const newPhotos = [...(formData.Fotografias || [])];
-                                    newPhotos.splice(idx, 1);
-                                    setFormData({...formData, Fotografias: newPhotos});
-                                }}
-                                className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                                <Trash2 size={12}/>
-                            </button>
+                            <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button 
+                                    variant="icon" 
+                                    action="danger"
+                                    size="icon-sm"
+                                    className="bg-white/80 hover:bg-white dark:bg-black/50 dark:hover:bg-black/80"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        const newPhotos = [...(formData.Fotografias || [])];
+                                        newPhotos.splice(idx, 1);
+                                        setFormData({...formData, Fotografias: newPhotos});
+                                    }}
+                                >
+                                    <Trash2 size={12}/>
+                                </Button>
+                            </div>
                         </div>
                     ))}
                     <button 
@@ -243,19 +248,15 @@ const GeneralTab = ({ formData, setFormData, handleInfoChange }: { formData: Equ
                                     href={doc.url} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
-                                    className="p-2 text-zinc-500 hover:text-blue-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
-                                    title="Abrir enlace"
                                 >
-                                    <ExternalLink size={16} />
+                                    <Button variant="icon" action="primary" title="Abrir enlace">
+                                        <ExternalLink size={16} />
+                                    </Button>
                                 </a>
                             )}
-                            <button 
-                                onClick={() => removeDocument(idx)} 
-                                className="p-2 text-zinc-500 hover:text-red-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
-                                title="Eliminar"
-                            >
+                            <Button variant="icon" action="danger" onClick={() => removeDocument(idx)} title="Eliminar">
                                 <Trash2 size={16}/>
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 ))}
@@ -464,13 +465,9 @@ const ProceduresTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
                                                 onChange={e => updateTaskStep(idx, stepIdx, e.target.value)} 
                                                 className="flex-1 text-sm min-h-[2.5rem]"
                                             />
-                                            <button 
-                                                onClick={() => removeTaskStep(idx, stepIdx)} 
-                                                className="mt-2 text-zinc-300 hover:text-red-500 transition-colors"
-                                                title="Eliminar paso"
-                                            >
+                                            <Button variant="icon" action="danger" onClick={() => removeTaskStep(idx, stepIdx)} title="Eliminar paso">
                                                 <Trash2 size={14} />
-                                            </button>
+                                            </Button>
                                         </div>
                                     ))}
                                     <Button 
@@ -486,8 +483,8 @@ const ProceduresTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
                                  <Input label="Costo Ref (S/.)" type="number" value={task["MONTO REF"]?.amount} onChange={e => updateTask(idx, 'cost', e.target.value)} className="w-32" />
                                  
                                  <div className="absolute top-1 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <button onClick={() => duplicateTask(idx)} className="text-zinc-400 hover:text-blue-500 p-1" title="Duplicar Tarea"><Copy size={16} /></button>
-                                      <button onClick={() => removeTask(idx)} className="text-zinc-400 hover:text-red-500 p-1" title="Eliminar Tarea"><Trash2 size={16} /></button>
+                                      <Button variant="icon" action="primary" onClick={() => duplicateTask(idx)} title="Duplicar Tarea"><Copy size={16} /></Button>
+                                      <Button variant="icon" action="danger" onClick={() => removeTask(idx)} title="Eliminar Tarea"><Trash2 size={16} /></Button>
                                  </div>
                              </div>
                         ))
@@ -715,25 +712,21 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
                                 <td className="px-4 py-3 text-right">
                                     <div className="flex justify-end items-center gap-1">
                                         {!isReorderDisabled && (
-                                            <div className="flex flex-col mr-2">
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); moveUnit(item.originalIndex, 'UP'); }} 
-                                                    disabled={idx === 0}
-                                                    className="text-zinc-400 hover:text-blue-600 disabled:opacity-10 p-2.5 hover:bg-blue-50 rounded"
-                                                >
-                                                    <ArrowUp size={10} />
-                                                </button>
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); moveUnit(item.originalIndex, 'DOWN'); }} 
-                                                    disabled={idx === processedUnits.length - 1}
-                                                    className="text-zinc-400 hover:text-blue-600 disabled:opacity-10 p-2.5 hover:bg-blue-50 rounded"
-                                                >
-                                                    <ArrowDown size={10} />
-                                                </button>
+                                            <div className="flex gap-1 mr-2">
+                                                <Button variant="icon" action="primary" size="icon-md" onClick={(e) => { e.stopPropagation(); moveUnit(item.originalIndex, 'UP'); }} disabled={idx === 0}>
+                                                    <ArrowUp size={14} />
+                                                </Button>
+                                                <Button variant="icon" action="primary" size="icon-md" onClick={(e) => { e.stopPropagation(); moveUnit(item.originalIndex, 'DOWN'); }} disabled={idx === processedUnits.length - 1}>
+                                                    <ArrowDown size={14} />
+                                                </Button>
                                             </div>
                                         )}
-                                        <button onClick={(e) => { e.stopPropagation(); duplicateUnit(item.originalIndex); }} className="text-zinc-500 hover:bg-blue-50 hover:text-blue-600 p-1.5 rounded" title="Duplicar"><Copy size={16}/></button>
-                                        <button onClick={(e) => { e.stopPropagation(); deleteUnit(item.originalIndex); }} className="text-zinc-500 hover:bg-red-50 hover:text-red-500 p-1.5 rounded" title="Eliminar"><Trash2 size={16}/></button>
+                                        <Button variant="icon" action="primary" onClick={(e) => { e.stopPropagation(); duplicateUnit(item.originalIndex); }} title="Duplicar">
+                                            <Copy size={16}/>
+                                        </Button>
+                                        <Button variant="icon" action="danger" onClick={(e) => { e.stopPropagation(); deleteUnit(item.originalIndex); }} title="Eliminar">
+                                            <Trash2 size={16}/>
+                                        </Button>
                                     </div>
                                 </td>
                             </tr>
@@ -854,8 +847,8 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
                     <Card key={idx}>
                         <CardContent className="p-4 space-y-3 relative group">
                             <div className="relative top-2 right-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button variant="ghost" size="sm" onClick={() => duplicateMaintenance(idx)} title="Duplicar entrada"><Copy size={14}/></Button>
-                                <Button variant="ghost" size="sm" className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => deleteMaintenance(idx)} title="Eliminar entrada"><Trash2 size={14}/></Button>
+                                <Button variant="icon" action="primary" size="sm" onClick={() => duplicateMaintenance(idx)} title="Duplicar entrada"><Copy size={14}/></Button>
+                                <Button variant="icon" action="danger" size="sm" onClick={() => deleteMaintenance(idx)} title="Eliminar entrada"><Trash2 size={14}/></Button>
                             </div>
                             <div className="flex justify-between items-start">
                                 <span className="font-mono text-xs text-zinc-400">Reg #{log.Nro}</span>
@@ -907,12 +900,11 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
                         {maintenancePhotoModal && (unit.mantenimientos || [])[maintenancePhotoModal.logIdx]?.Fotografias?.map((photo, pIdx) => (
                              <div key={pIdx} className="relative group aspect-square bg-zinc-100 dark:bg-zinc-800 rounded overflow-hidden cursor-zoom-in" onClick={() => setZoomedImage(photo)}>
                                  <img src={photo} alt="evidencia" className="w-full h-full object-cover transition-transform hover:scale-105"/>
-                                 <button 
-                                    onClick={(e) => { e.stopPropagation(); removePhotoFromLog(maintenancePhotoModal.logIdx, pIdx); }}
-                                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                 >
-                                    <Trash2 size={10}/>
-                                 </button>
+                                 <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                     <Button variant="icon" action="danger" size="icon-sm" className="bg-white/80 hover:bg-white" onClick={(e) => { e.stopPropagation(); removePhotoFromLog(maintenancePhotoModal.logIdx, pIdx); }}>
+                                        <Trash2 size={10}/>
+                                     </Button>
+                                 </div>
                              </div>
                         ))}
                          {maintenancePhotoModal && (!(unit.mantenimientos || [])[maintenancePhotoModal.logIdx]?.Fotografias?.length) && (
