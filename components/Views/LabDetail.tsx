@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Lab, Equipo, Software, PersonalInfo } from '../../types';
+import { Lab, Equipo, Software, PersonalInfo, Documento } from '../../types';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
 import { ImageViewer } from '../ui/ImageViewer';
-import { ArrowLeft, Plus, Trash2, Save, Cpu, HardDrive, Users, UserCheck, UserCog, GraduationCap, Copy, ArrowRightLeft, Image as ImageIcon, ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Cpu, HardDrive, Users, UserCheck, UserCog, GraduationCap, Copy, ArrowRightLeft, Image as ImageIcon, ArrowUp, ArrowDown, FileText, ExternalLink } from 'lucide-react';
 import { EquipmentDetail } from './EquipmentDetail';
 import { SoftwareDetail } from './SoftwareDetail';
 
@@ -181,6 +181,41 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
       });
   };
 
+  // Document Logic for Labs
+  const addDocument = () => {
+    setFormData(prev => {
+        const info = prev.infoAmbiente || {};
+        const docs = info.documentos || [];
+        return {
+            ...prev,
+            infoAmbiente: { ...info, documentos: [...docs, { titulo: "", url: "" }] }
+        } as Lab;
+    });
+  };
+
+  const updateDocument = (idx: number, key: keyof Documento, value: string) => {
+    setFormData(prev => {
+        const info = prev.infoAmbiente || {};
+        const docs = [...(info.documentos || [])];
+        docs[idx] = { ...docs[idx], [key]: value };
+        return {
+            ...prev,
+            infoAmbiente: { ...info, documentos: docs }
+        } as Lab;
+    });
+  };
+
+  const removeDocument = (idx: number) => {
+    setFormData(prev => {
+        const info = prev.infoAmbiente || {};
+        const docs = (info.documentos || []).filter((_, i) => i !== idx);
+        return {
+            ...prev,
+            infoAmbiente: { ...info, documentos: docs }
+        } as Lab;
+    });
+  };
+
 
   const handleSave = () => {
     onUpdate(formData);
@@ -198,6 +233,7 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
   const getTechStaff = () => formData.infoAmbiente?.["PERSONAL TÉCNICO"] || [];
   const getPrograms = () => formData.infoAmbiente?.["PROGRAMA(S) QUE UTILIZAN EL LABORATORIO O TALLER"] || [];
   const getLabPhotos = () => formData.infoAmbiente?.Fotografias || [];
+  const getDocuments = () => formData.infoAmbiente?.documentos || [];
 
 
   // --- EQUIPMENT LOGIC ---
@@ -525,6 +561,61 @@ export const LabDetail: React.FC<LabDetailProps> = ({ lab, allLabs, currentLabIn
                             )}
                         </div>
                          {getLabPhotos().length === 0 && !isEditing && <p className="text-sm text-zinc-500 italic">No hay fotografías.</p>}
+                    </CardContent>
+                 </Card>
+
+                 {/* Document Section */}
+                 <Card>
+                    <CardHeader>
+                        <div className="flex justify-between items-center">
+                            <CardTitle className="flex items-center gap-2"><FileText size={18}/> Documentación y Enlaces</CardTitle>
+                            {isEditing && <Button size="sm" variant="secondary" onClick={addDocument}><Plus size={14}/></Button>}
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        {getDocuments().map((doc, idx) => (
+                            <div key={idx} className="flex gap-2 items-start bg-zinc-50 dark:bg-zinc-800/50 p-2 rounded-md border border-zinc-100 dark:border-zinc-800">
+                                <div className="flex-1 space-y-1">
+                                    <Input 
+                                        placeholder="Título (ej. Plano de Distribución)" 
+                                        value={doc.titulo} 
+                                        onChange={e => updateDocument(idx, 'titulo', e.target.value)} 
+                                        disabled={!isEditing}
+                                        className="text-sm font-medium"
+                                    />
+                                    <Input 
+                                        placeholder="URL (https://...)" 
+                                        value={doc.url} 
+                                        onChange={e => updateDocument(idx, 'url', e.target.value)} 
+                                        disabled={!isEditing}
+                                        className="text-xs font-mono text-zinc-500"
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-1 mt-1">
+                                    {doc.url && (
+                                        <a 
+                                            href={doc.url} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="p-2 text-zinc-500 hover:text-blue-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
+                                            title="Abrir enlace"
+                                        >
+                                            <ExternalLink size={16} />
+                                        </a>
+                                    )}
+                                    {isEditing && (
+                                        <button 
+                                            onClick={() => removeDocument(idx)} 
+                                            className="p-2 text-zinc-500 hover:text-red-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded transition-colors"
+                                            title="Eliminar"
+                                        >
+                                            <Trash2 size={16}/>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                        {getDocuments().length === 0 && <p className="text-zinc-500 text-sm italic">No hay documentos registrados.</p>}
                     </CardContent>
                  </Card>
 

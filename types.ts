@@ -37,6 +37,7 @@ export interface InfoAmbiente {
   "PERSONAL TÉCNICO"?: PersonalInfo[];
   "PERSONAL ASIGNADO PARA VERIFICAR LA CBC III"?: PersonalInfo;
   "Fotografias"?: string[];
+  "documentos"?: Documento[];
 }
 
 export interface PersonalInfo {
@@ -147,6 +148,7 @@ export interface Software {
   "TIPO DE LICENCIA"?: string;
   "COMENTARIOS"?: string;
   "Fotografias"?: string[];
+  "documentos"?: Documento[];
 }
 
 // Theme Types
