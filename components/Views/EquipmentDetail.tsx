@@ -417,7 +417,7 @@ const ProceduresTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
 
                                  <Input label="Costo Ref (S/.)" type="number" value={task["MONTO REF"]?.amount} onChange={e => updateTask(idx, 'cost', e.target.value)} className="w-32" />
                                  
-                                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                 <div className="absolute top-1 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                       <button onClick={() => duplicateTask(idx)} className="text-zinc-400 hover:text-blue-500 p-1" title="Duplicar Tarea"><Copy size={16} /></button>
                                       <button onClick={() => removeTask(idx)} className="text-zinc-400 hover:text-red-500 p-1" title="Eliminar Tarea"><Trash2 size={16} /></button>
                                  </div>
@@ -540,6 +540,16 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
         onUpdate({ ...unit, infoEquipo: { ...(unit.infoEquipo || {}), [key]: value } as any });
     };
 
+    // --- Helper to sort logs Chronologically (Oldest to Newest) ---
+    const sortAndSaveLogs = (logs: MantenimientoLog[]) => {
+        const sorted = [...logs].sort((a, b) => {
+             const dateA = new Date(a.Fecha || '1970-01-01').getTime();
+             const dateB = new Date(b.Fecha || '1970-01-01').getTime();
+             return dateA - dateB;
+        });
+        onUpdate({ ...unit, mantenimientos: sorted });
+    };
+
     const addMaintenance = () => {
         const newLog: MantenimientoLog = {
             Nro: (unit.mantenimientos || []).length + 1,
@@ -549,7 +559,9 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
             Observaciones: "",
             Fotografias: []
         };
-        onUpdate({ ...unit, mantenimientos: [newLog, ...(unit.mantenimientos || [])] });
+        // Add to array then Sort and Save
+        const newLogs = [...(unit.mantenimientos || []), newLog];
+        sortAndSaveLogs(newLogs);
     };
     
     const duplicateMaintenance = (idx: number) => {
@@ -557,14 +569,14 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
       const newLog = JSON.parse(JSON.stringify(log));
       newLog.Nro = (unit.mantenimientos || []).length + 1; 
       
-      const newLogs = [...(unit.mantenimientos || [])];
-      newLogs.splice(0, 0, newLog); 
-      onUpdate({ ...unit, mantenimientos: newLogs });
+      const newLogs = [...(unit.mantenimientos || []), newLog];
+      sortAndSaveLogs(newLogs);
     };
 
     const deleteMaintenance = (idx: number) => {
          if(confirm("¿Eliminar este registro de mantenimiento?")) {
             const newLogs = (unit.mantenimientos || []).filter((_, i) => i !== idx);
+            // No need to sort if removing, but ensuring state consistency
             onUpdate({ ...unit, mantenimientos: newLogs });
          }
     };
@@ -572,7 +584,7 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
     const updateMaintenance = (idx: number, log: MantenimientoLog) => {
         const newLogs = [...(unit.mantenimientos || [])];
         newLogs[idx] = log;
-        onUpdate({ ...unit, mantenimientos: newLogs });
+        sortAndSaveLogs(newLogs);
     };
 
     const openPhotoModal = (idx: number) => {
