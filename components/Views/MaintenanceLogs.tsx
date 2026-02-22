@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { Lab } from '../../types';
 import { Card, CardContent } from '../ui/Card';
-import { ClipboardCheck, Search, Image as ImageIcon, List, Calendar, MapPin, Tag, User, Settings2, Check, X } from 'lucide-react';
+import { ClipboardCheck, Search, Image as ImageIcon, List, Calendar as CalendarIcon, MapPin, Tag, User, Settings2, Check, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ImageViewer } from '../ui/ImageViewer';
 
 interface MaintenanceLogsProps {
@@ -25,7 +25,7 @@ interface FlatLog {
     photos: string[];
 }
 
-type Tab = 'LIST' | 'GALLERY';
+type Tab = 'LIST' | 'GALLERY' | 'CALENDAR';
 
 const ALL_COLUMNS = [
     { id: 'date', label: 'Fecha' },
@@ -60,6 +60,7 @@ export const MaintenanceLogs: React.FC<MaintenanceLogsProps> = ({ labs }) => {
     const [visibleColumns, setVisibleColumns] = useState<string[]>(['date', 'equipmentName', 'unitCode', 'activity', 'responsible', 'labName']);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
     const [showColumnSelector, setShowColumnSelector] = useState(false);
+    const [calendarDate, setCalendarDate] = useState(new Date());
 
     // Extract all logs flatly
     const allLogs = useMemo(() => {
@@ -144,6 +145,41 @@ export const MaintenanceLogs: React.FC<MaintenanceLogsProps> = ({ labs }) => {
         return photos;
     }, [filteredLogs]);
 
+    // Group logs by date for Calendar View
+    const logsByDate = useMemo(() => {
+        const grouped: Record<string, FlatLog[]> = {};
+        filteredLogs.forEach(log => {
+            if (!grouped[log.date]) grouped[log.date] = [];
+            grouped[log.date].push(log);
+        });
+        return grouped;
+    }, [filteredLogs]);
+
+    // Calendar Helpers
+    const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+    const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+
+    const calendarDays = useMemo(() => {
+        const year = calendarDate.getFullYear();
+        const month = calendarDate.getMonth();
+        const daysInMonth = getDaysInMonth(year, month);
+        const firstDay = getFirstDayOfMonth(year, month);
+        
+        const days = [];
+        // Padding for previous month
+        for (let i = 0; i < firstDay; i++) {
+            days.push(null);
+        }
+        // Current month days
+        for (let i = 1; i <= daysInMonth; i++) {
+            days.push(new Date(year, month, i));
+        }
+        return days;
+    }, [calendarDate]);
+
+    const nextMonth = () => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1));
+    const prevMonth = () => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1));
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
@@ -168,6 +204,12 @@ export const MaintenanceLogs: React.FC<MaintenanceLogsProps> = ({ labs }) => {
                     onClick={() => setActiveTab('GALLERY')}
                 >
                     <ImageIcon size={16} /> Galería de Evidencias
+                </button>
+                <button
+                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'CALENDAR' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
+                    onClick={() => setActiveTab('CALENDAR')}
+                >
+                    <CalendarIcon size={16} /> Vista de Calendario
                 </button>
             </div>
 
@@ -459,6 +501,68 @@ export const MaintenanceLogs: React.FC<MaintenanceLogsProps> = ({ labs }) => {
                                 </div>
                             ))
                         )}
+                    </div>
+                )}
+
+                {activeTab === 'CALENDAR' && (
+                    <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden shadow-sm p-4">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-bold text-zinc-800 dark:text-white capitalize">
+                                {calendarDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' })}
+                            </h3>
+                            <div className="flex gap-2">
+                                <button onClick={prevMonth} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors">
+                                    <ChevronLeft size={20} />
+                                </button>
+                                <button onClick={() => setCalendarDate(new Date())} className="px-3 py-1 text-xs font-medium bg-zinc-100 dark:bg-zinc-800 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
+                                    Hoy
+                                </button>
+                                <button onClick={nextMonth} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors">
+                                    <ChevronRight size={20} />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-7 gap-px bg-zinc-200 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden">
+                            {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(day => (
+                                <div key={day} className="bg-zinc-50 dark:bg-zinc-900 py-2 text-center text-xs font-bold text-zinc-500 uppercase">
+                                    {day}
+                                </div>
+                            ))}
+                            {calendarDays.map((date, idx) => {
+                                if (!date) return <div key={`empty-${idx}`} className="bg-zinc-50/50 dark:bg-zinc-900/50 min-h-[120px]" />;
+                                
+                                const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                                const dayLogs = logsByDate[dateStr] || [];
+                                const isToday = new Date().toLocaleDateString('en-CA') === dateStr;
+
+                                return (
+                                    <div key={dateStr} className={`bg-white dark:bg-zinc-950 min-h-[120px] p-2 border-t border-l border-zinc-100 dark:border-zinc-900 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/30`}>
+                                        <div className="flex justify-between items-start mb-1">
+                                            <span className={`text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center ${isToday ? 'bg-blue-600 text-white' : 'text-zinc-400'}`}>
+                                                {date.getDate()}
+                                            </span>
+                                            {dayLogs.length > 0 && (
+                                                <span className="text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded">
+                                                    {dayLogs.length}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="space-y-1 overflow-y-auto max-h-[80px] custom-scrollbar">
+                                            {dayLogs.map(log => (
+                                                <div 
+                                                    key={log.id} 
+                                                    className="text-[10px] p-1 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800 truncate cursor-help"
+                                                    title={`${log.equipmentName}: ${log.activity}`}
+                                                >
+                                                    {log.activity}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 )}
             </div>
