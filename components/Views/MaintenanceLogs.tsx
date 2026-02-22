@@ -177,6 +177,7 @@ export const MaintenanceLogs: React.FC<MaintenanceLogsProps> = ({ labs }) => {
                                     <div className="flex flex-col md:flex-row gap-4 justify-between">
                                         <div className="flex items-start gap-4">
                                             <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex flex-col items-center justify-center shrink-0 border border-blue-100 dark:border-blue-800">
+                                                <span className="text-xs font-bold text-blue-800 dark:text-blue-200 leading-none">{new Date(log.date).toLocaleString('default', { year: 'numeric' })}</span>
                                                 <span className="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase">{new Date(log.date).toLocaleString('default', { month: 'short' })}</span>
                                                 <span className="text-lg font-bold text-blue-800 dark:text-blue-200 leading-none">{new Date(log.date).getDate() + 1}</span>
                                             </div>
