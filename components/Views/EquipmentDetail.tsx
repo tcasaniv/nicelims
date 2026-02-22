@@ -5,7 +5,7 @@ import { Input } from '../ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
 import { ImageViewer } from '../ui/ImageViewer';
-import { ArrowLeft, Plus, Trash2, Save, Wrench, ClipboardList, Box, History, FileText, Copy, Camera, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, X, ExternalLink, ChevronUp, ChevronDown, ListFilter } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Wrench, ClipboardList, Box, History, FileText, Copy, Camera, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, X, ExternalLink, ChevronUp, ChevronDown, ListFilter, Share2, Check } from 'lucide-react';
 
 interface EquipmentDetailProps {
     equipment: Equipo;
@@ -639,7 +639,9 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
         return (
             <UnitDetail
                 unit={formData.HojasDeVidaEquipos[selectedUnitIndex]}
+                allUnits={formData.HojasDeVidaEquipos}
                 onUpdate={(u) => updateUnit(selectedUnitIndex, u)}
+                onBulkUpdate={(units) => setFormData(prev => ({ ...prev, HojasDeVidaEquipos: units }))}
                 onBack={() => setSelectedUnitIndex(null)}
             />
         );
@@ -752,10 +754,17 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
 };
 
 // --- UNIT DETAIL (Nested in Life Sheets) ---
-const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpdate: (u: HojaDeVidaEquipo) => void, onBack: () => void }) => {
+const UnitDetail = ({ unit, allUnits, onUpdate, onBulkUpdate, onBack }: { 
+    unit: HojaDeVidaEquipo, 
+    allUnits: HojaDeVidaEquipo[], 
+    onUpdate: (u: HojaDeVidaEquipo) => void, 
+    onBulkUpdate: (units: HojaDeVidaEquipo[]) => void,
+    onBack: () => void 
+}) => {
     const [maintenancePhotoModal, setMaintenancePhotoModal] = useState<{ logIdx: number; isOpen: boolean } | null>(null);
     const [newMaintPhotoUrl, setNewMaintPhotoUrl] = useState("");
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+    const [copyModal, setCopyModal] = useState<{ logIdx: number; targetUnitIndices: number[] } | null>(null);
 
     // Custom Confirmation Modal State
     const [confirmationState, setConfirmationState] = useState<{
@@ -842,6 +851,42 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
         updateMaintenance(logIdx, updatedLog);
     };
 
+    const copyMaintenanceToUnits = () => {
+        if (!copyModal) return;
+        const sourceLog = (unit.mantenimientos || [])[copyModal.logIdx];
+        const newUnits = [...allUnits];
+
+        copyModal.targetUnitIndices.forEach(targetIdx => {
+            const targetUnit = { ...newUnits[targetIdx] };
+            const targetLogs = [...(targetUnit.mantenimientos || [])];
+
+            // Check for duplicates (same activity and date)
+            const isDuplicate = targetLogs.some(log => 
+                log["Actividad realizada"] === sourceLog["Actividad realizada"] && 
+                log.Fecha === sourceLog.Fecha
+            );
+
+            if (!isDuplicate) {
+                const newLog = JSON.parse(JSON.stringify(sourceLog));
+                newLog.Nro = targetLogs.length + 1;
+                targetLogs.push(newLog);
+                
+                // Sort target logs
+                targetLogs.sort((a, b) => {
+                    const dateA = new Date(a.Fecha || '1970-01-01').getTime();
+                    const dateB = new Date(b.Fecha || '1970-01-01').getTime();
+                    return dateA - dateB;
+                });
+
+                targetUnit.mantenimientos = targetLogs;
+                newUnits[targetIdx] = targetUnit;
+            }
+        });
+
+        onBulkUpdate(newUnits);
+        setCopyModal(null);
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4 mb-4">
@@ -869,6 +914,7 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
                     <Card key={idx}>
                         <CardContent className="p-4 space-y-3 relative group">
                             <div className="relative top-2 right-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button variant="icon" action="primary" size="sm" onClick={() => setCopyModal({ logIdx: idx, targetUnitIndices: [] })} title="Copiar a otras unidades"><Share2 size={14} /></Button>
                                 <Button variant="icon" action="primary" size="sm" onClick={() => duplicateMaintenance(idx)} title="Duplicar entrada"><Copy size={14} /></Button>
                                 <Button variant="icon" action="danger" size="sm" onClick={() => deleteMaintenance(idx)} title="Eliminar entrada"><Trash2 size={14} /></Button>
                             </div>
@@ -956,6 +1002,68 @@ const UnitDetail = ({ unit, onUpdate, onBack }: { unit: HojaDeVidaEquipo, onUpda
                 onClose={() => setZoomedImage(null)}
                 src={zoomedImage || ""}
             />
+
+            {/* Copy Maintenance to Units Modal */}
+            <Modal
+                isOpen={!!copyModal}
+                onClose={() => setCopyModal(null)}
+                title="Copiar Registro a otras Unidades"
+                footer={
+                    <div className="flex justify-end gap-2">
+                        <Button variant="ghost" onClick={() => setCopyModal(null)}>Cancelar</Button>
+                        <Button
+                            onClick={copyMaintenanceToUnits}
+                            disabled={!copyModal?.targetUnitIndices.length}
+                        >
+                            Copiar a {copyModal?.targetUnitIndices.length} unidades
+                        </Button>
+                    </div>
+                }
+            >
+                <div className="space-y-4">
+                    <p className="text-sm text-zinc-500">Selecciona las unidades destino para este registro de mantenimiento. Se omitirán las unidades que ya tengan un registro idéntico (misma actividad y fecha).</p>
+
+                    <div className="flex gap-2 mb-2">
+                        <Button size="xs" variant="secondary" onClick={() => {
+                            const allIndices = allUnits.map((_, i) => i).filter(i => allUnits[i] !== unit);
+                            setCopyModal(prev => prev ? { ...prev, targetUnitIndices: allIndices } : null);
+                        }}>Seleccionar Todas</Button>
+                        <Button size="xs" variant="ghost" onClick={() => {
+                            setCopyModal(prev => prev ? { ...prev, targetUnitIndices: [] } : null);
+                        }}>Desmarcar Todas</Button>
+                    </div>
+
+                    <div className="max-h-[40vh] overflow-y-auto border rounded-md divide-y dark:border-zinc-700 dark:divide-zinc-700">
+                        {allUnits.map((u, i) => {
+                            if (u === unit) return null;
+                            const isSelected = copyModal?.targetUnitIndices.includes(i);
+                            return (
+                                <div
+                                    key={i}
+                                    className={`p-3 flex items-center gap-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors ${isSelected ? 'bg-zinc-50 dark:bg-zinc-800' : ''}`}
+                                    onClick={() => {
+                                        setCopyModal(prev => {
+                                            if (!prev) return null;
+                                            const newIndices = isSelected
+                                                ? prev.targetUnitIndices.filter(idx => idx !== i)
+                                                : [...prev.targetUnitIndices, i];
+                                            return { ...prev, targetUnitIndices: newIndices };
+                                        });
+                                    }}
+                                >
+                                    <div className={`w-4 h-4 rounded border flex items-center justify-center ${isSelected ? 'bg-primary border-primary text-white' : 'border-zinc-300 dark:border-zinc-600'}`}>
+                                        {isSelected && <Check size={10} />}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="text-sm font-medium">{u.infoEquipo?.["Codigo Inventario Equipo"] || `Unidad ${i + 1}`}</div>
+                                        <div className="text-xs text-zinc-400">{u.infoEquipo?.Ubicación || 'Sin ubicación'}</div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };
