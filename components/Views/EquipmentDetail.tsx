@@ -1,15 +1,18 @@
 import React, { useState, useMemo } from 'react';
-import { Equipo, Caracteristica, ProcedimientoMantenimiento, MantenimientoFrecuencia, MantenimientoTask, HojaDeVidaEquipo, MantenimientoLog, Documento } from '../../types';
+import { Equipo, Caracteristica, ProcedimientoMantenimiento, MantenimientoFrecuencia, MantenimientoTask, HojaDeVidaEquipo, MantenimientoLog, Documento, Lab } from '../../types';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
 import { ImageViewer } from '../ui/ImageViewer';
-import { ArrowLeft, Plus, Trash2, Save, Wrench, ClipboardList, Box, History, FileText, Copy, Camera, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, X, ExternalLink, ChevronUp, ChevronDown, ListFilter, Share2, Check } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Wrench, ClipboardList, Box, History, FileText, Copy, Camera, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, X, ExternalLink, ChevronUp, ChevronDown, ListFilter, Share2, Check, FlaskConical } from 'lucide-react';
 
 interface EquipmentDetailProps {
     equipment: Equipo;
+    allLabs?: Lab[];
+    currentLabIndex?: number;
     onUpdate: (eq: Equipo) => void;
+    onCopyEquipmentData?: (sourceEquipment: Equipo, targets: { labIndex: number, equipmentIndex: number }[], options: { fichaTecnica: boolean, procedimientos: boolean }) => void;
     onBack: () => void;
 }
 
@@ -20,9 +23,10 @@ const FREQUENCIES = [
     'enCadaUso', 'semanal', 'quincenal', 'mensual', 'bimestral', 'trimestral', 'semestral', 'anual'
 ];
 
-export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({ equipment, onUpdate, onBack }) => {
+export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({ equipment, allLabs, currentLabIndex, onUpdate, onCopyEquipmentData, onBack }) => {
     const [activeTab, setActiveTab] = useState<Tab>('GENERAL');
     const [formData, setFormData] = useState<Equipo>(equipment);
+    const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
 
     // --- Helpers for Deep Updates ---
     const handleInfoChange = (key: keyof Equipo['infoEquipo'], value: string) => {
@@ -54,7 +58,14 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({ equipment, onU
                         </p>
                     </div>
                 </div>
-                <Button onClick={saveChanges} className="gap-2"> <Save size={16} /> Guardar Equipo</Button>
+                <div className="flex items-center gap-2">
+                    {allLabs && onCopyEquipmentData && (
+                        <Button variant="secondary" onClick={() => setIsCopyModalOpen(true)} className="gap-2">
+                            <Copy size={16} /> Copiar a otros...
+                        </Button>
+                    )}
+                    <Button onClick={saveChanges} className="gap-2"> <Save size={16} /> Guardar Equipo</Button>
+                </div>
             </div>
 
             {/* Navigation */}
@@ -76,7 +87,178 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({ equipment, onU
                     <LifeSheetsTab formData={formData} setFormData={setFormData} />
                 )}
             </div>
+
+            {/* Copy Data Modal */}
+            {allLabs && onCopyEquipmentData && (
+                <CopyDataModal
+                    isOpen={isCopyModalOpen}
+                    onClose={() => setIsCopyModalOpen(false)}
+                    allLabs={allLabs}
+                    currentLabIndex={currentLabIndex}
+                    sourceEquipment={formData}
+                    onConfirm={(targets, options) => {
+                        onCopyEquipmentData(formData, targets, options);
+                        setIsCopyModalOpen(false);
+                    }}
+                />
+            )}
         </div>
+    );
+};
+
+// --- COPY DATA MODAL ---
+const CopyDataModal = ({
+    isOpen,
+    onClose,
+    allLabs,
+    currentLabIndex,
+    sourceEquipment,
+    onConfirm
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    allLabs: Lab[];
+    currentLabIndex?: number;
+    sourceEquipment: Equipo;
+    onConfirm: (targets: { labIndex: number, equipmentIndex: number }[], options: { fichaTecnica: boolean, procedimientos: boolean }) => void;
+}) => {
+    const [selectedTargets, setSelectedTargets] = useState<{ labIndex: number, equipmentIndex: number }[]>([]);
+    const [options, setOptions] = useState({ fichaTecnica: true, procedimientos: true });
+    const [searchTerm, setSearchTerm] = useState("");
+
+    const filteredLabs = useMemo(() => {
+        return allLabs.map((lab, lIdx) => ({
+            ...lab,
+            originalLabIndex: lIdx,
+            equipos: (lab.equipos || []).map((eq, eIdx) => ({ ...eq, originalEqIndex: eIdx }))
+                .filter(eq => {
+                    // Don't show the source equipment itself
+                    if (lIdx === currentLabIndex && eq["NOMBRE DEL EQUIPO"] === sourceEquipment["NOMBRE DEL EQUIPO"] && eq.infoEquipo?.Marca === sourceEquipment.infoEquipo?.Marca && eq.infoEquipo?.Modelo === sourceEquipment.infoEquipo?.Modelo) {
+                        return false;
+                    }
+                    if (!searchTerm) return true;
+                    const search = searchTerm.toLowerCase();
+                    return (
+                        (eq["NOMBRE DEL EQUIPO"] || "").toLowerCase().includes(search) ||
+                        (eq.infoEquipo?.Marca || "").toLowerCase().includes(search) ||
+                        (eq.infoEquipo?.Modelo || "").toLowerCase().includes(search) ||
+                        (lab.infoAmbiente?.["NOMBRE DEL LABORATORIO O TALLER"] || "").toLowerCase().includes(search)
+                    );
+                })
+        })).filter(lab => lab.equipos.length > 0);
+    }, [allLabs, searchTerm, sourceEquipment, currentLabIndex]);
+
+    const toggleTarget = (labIndex: number, eqIndex: number) => {
+        setSelectedTargets(prev => {
+            const exists = prev.find(t => t.labIndex === labIndex && t.equipmentIndex === eqIndex);
+            if (exists) {
+                return prev.filter(t => !(t.labIndex === labIndex && t.equipmentIndex === eqIndex));
+            }
+            return [...prev, { labIndex, equipmentIndex: eqIndex }];
+        });
+    };
+
+    const toggleAllInLab = (labIndex: number, equipments: any[]) => {
+        const labTargets = equipments.map(eq => ({ labIndex, equipmentIndex: eq.originalEqIndex }));
+        const allSelected = labTargets.every(lt => selectedTargets.find(st => st.labIndex === lt.labIndex && st.equipmentIndex === lt.equipmentIndex));
+
+        if (allSelected) {
+            setSelectedTargets(prev => prev.filter(st => st.labIndex !== labIndex));
+        } else {
+            setSelectedTargets(prev => {
+                const otherTargets = prev.filter(st => st.labIndex !== labIndex);
+                return [...otherTargets, ...labTargets];
+            });
+        }
+    };
+
+    return (
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Copiar Información a otros Equipos"
+            className="max-w-3xl"
+            footer={
+                <div className="flex justify-between items-center w-full">
+                    <p className="text-sm text-zinc-500">{selectedTargets.length} equipos seleccionados</p>
+                    <div className="flex gap-2">
+                        <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+                        <Button onClick={() => onConfirm(selectedTargets, options)} disabled={selectedTargets.length === 0}>
+                            Copiar Información
+                        </Button>
+                    </div>
+                </div>
+            }
+        >
+            <div className="space-y-6">
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
+                    <p className="text-sm text-blue-800 dark:text-blue-300 font-medium mb-3">¿Qué información desea copiar?</p>
+                    <div className="flex gap-6">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={options.fichaTecnica} onChange={e => setOptions({ ...options, fichaTecnica: e.target.checked })} className="rounded text-blue-600" />
+                            <span className="text-sm">Ficha Técnica (Info General)</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={options.procedimientos} onChange={e => setOptions({ ...options, procedimientos: e.target.checked })} className="rounded text-blue-600" />
+                            <span className="text-sm">Procedimientos de Mantenimiento</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
+                        <Input
+                            placeholder="Buscar por nombre de equipo, marca, modelo o laboratorio..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="pl-10"
+                        />
+                    </div>
+
+                    <div className="max-h-[400px] overflow-y-auto border border-zinc-200 dark:border-zinc-800 rounded-lg divide-y divide-zinc-200 dark:divide-zinc-800">
+                        {filteredLabs.map((lab) => (
+                            <div key={lab.originalLabIndex} className="p-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="font-bold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                                        <FlaskConical size={14} className="text-blue-500" />
+                                        {lab.infoAmbiente?.["NOMBRE DEL LABORATORIO O TALLER"]}
+                                    </h4>
+                                    <Button variant="ghost" size="sm" onClick={() => toggleAllInLab(lab.originalLabIndex, lab.equipos)} className="text-xs h-7">
+                                        {lab.equipos.every(eq => selectedTargets.find(st => st.labIndex === lab.originalLabIndex && st.equipmentIndex === eq.originalEqIndex)) ? 'Desmarcar Lab' : 'Marcar Lab'}
+                                    </Button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {lab.equipos.map((eq: any) => {
+                                        const isSelected = selectedTargets.some(t => t.labIndex === lab.originalLabIndex && t.equipmentIndex === eq.originalEqIndex);
+                                        return (
+                                            <div
+                                                key={eq.originalEqIndex}
+                                                onClick={() => toggleTarget(lab.originalLabIndex, eq.originalEqIndex)}
+                                                className={`p-2 rounded border cursor-pointer transition-all flex items-center gap-3 ${isSelected ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-800' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 hover:border-blue-300'}`}
+                                            >
+                                                <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-300 dark:border-zinc-600'}`}>
+                                                    {isSelected && <Check size={12} />}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-medium truncate">{eq["NOMBRE DEL EQUIPO"]}</p>
+                                                    <p className="text-xs text-zinc-500 truncate">{eq.infoEquipo?.Marca} {eq.infoEquipo?.Modelo}</p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                        {filteredLabs.length === 0 && (
+                            <div className="p-8 text-center text-zinc-500">
+                                No se encontraron otros equipos para copiar la información.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </Modal>
     );
 };
 
@@ -595,6 +777,7 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
 
     const duplicateUnit = (idx: number) => {
         const unit = (formData.HojasDeVidaEquipos || [])[idx];
+        if (!unit) return;
         const newUnit = JSON.parse(JSON.stringify(unit));
         if (newUnit.infoEquipo) {
             newUnit.infoEquipo["Codigo Inventario Equipo"] = `${newUnit.infoEquipo["Codigo Inventario Equipo"]}-CP`;
@@ -804,6 +987,7 @@ const UnitDetail = ({ unit, allUnits, onUpdate, onBulkUpdate, onBack }: {
 
     const duplicateMaintenance = (idx: number) => {
         const log = (unit.mantenimientos || [])[idx];
+        if (!log) return;
         const newLog = JSON.parse(JSON.stringify(log));
         newLog.Nro = (unit.mantenimientos || []).length + 1;
 
@@ -866,7 +1050,7 @@ const UnitDetail = ({ unit, allUnits, onUpdate, onBulkUpdate, onBack }: {
                 log.Fecha === sourceLog.Fecha
             );
 
-            if (!isDuplicate) {
+            if (!isDuplicate && sourceLog) {
                 const newLog = JSON.parse(JSON.stringify(sourceLog));
                 newLog.Nro = targetLogs.length + 1;
                 targetLogs.push(newLog);

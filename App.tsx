@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UniversityData, ThemeMode, ViewType, Lab } from './types';
+import { UniversityData, ThemeMode, ViewType, Lab, Equipo } from './types';
 import { DEFAULT_DATA } from './constants';
 import { MenuBar } from './components/Layout/MenuBar';
 import { Dashboard } from './components/Views/Dashboard';
@@ -299,6 +299,44 @@ const App: React.FC = () => {
         setData(newData);
     };
 
+    const handleCopyEquipmentData = (sourceEquipment: Equipo, targets: { labIndex: number, equipmentIndex: number }[], options: { fichaTecnica: boolean, procedimientos: boolean }) => {
+        setData(prev => {
+            const newData = JSON.parse(JSON.stringify(prev));
+            targets.forEach(target => {
+                const targetLab = newData.labs[target.labIndex];
+                if (!targetLab) return;
+                const targetEq = targetLab.equipos[target.equipmentIndex];
+                if (!targetEq) return;
+
+                if (options.fichaTecnica) {
+                    // Copy General Info (Ficha Técnica)
+                    // We preserve the number of units as it's specific to the target
+                    const currentQty = targetEq["Nº DE EQUIPOS"];
+                    const currentUnits = targetEq.HojasDeVidaEquipos;
+
+                    targetEq["NOMBRE DEL EQUIPO"] = sourceEquipment["NOMBRE DEL EQUIPO"];
+                    if (sourceEquipment.infoEquipo) targetEq.infoEquipo = JSON.parse(JSON.stringify(sourceEquipment.infoEquipo));
+                    if (sourceEquipment.caracteristicas) targetEq.caracteristicas = JSON.parse(JSON.stringify(sourceEquipment.caracteristicas));
+                    if (sourceEquipment.Fotografias) targetEq.Fotografias = JSON.parse(JSON.stringify(sourceEquipment.Fotografias));
+                    if (sourceEquipment.documentos) targetEq.documentos = JSON.parse(JSON.stringify(sourceEquipment.documentos));
+                    targetEq.COMENTARIOS = sourceEquipment.COMENTARIOS;
+
+                    // Restore target-specific fields
+                    targetEq["Nº DE EQUIPOS"] = currentQty;
+                    targetEq.HojasDeVidaEquipos = currentUnits;
+                }
+
+                if (options.procedimientos) {
+                    // Copy Maintenance Procedures
+                    if (sourceEquipment.ProcedimientoMantenimiento) {
+                        targetEq.ProcedimientoMantenimiento = JSON.parse(JSON.stringify(sourceEquipment.ProcedimientoMantenimiento));
+                    }
+                }
+            });
+            return newData;
+        });
+    };
+
 
     return (
         <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 overflow-hidden font-sans">
@@ -458,6 +496,7 @@ const App: React.FC = () => {
                                 onUpdate={handleUpdateLab}
                                 onMoveEquipment={handleMoveEquipment}
                                 onMoveSoftware={handleMoveSoftware}
+                                onCopyEquipmentData={handleCopyEquipmentData}
                                 initialEquipmentIndex={navTarget?.equipmentIndex}
                                 initialSoftwareIndex={navTarget?.softwareIndex}
                             />

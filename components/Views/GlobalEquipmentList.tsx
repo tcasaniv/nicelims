@@ -114,7 +114,7 @@ export const GlobalEquipmentList: React.FC<GlobalEquipmentListProps> = ({ labs, 
             return acc;
         }, {} as Record<string, EquipmentGroup>);
 
-        let list = Object.values(grouped);
+        let list: EquipmentGroup[] = Object.values(grouped);
 
         // 2. Filter Logic (Column Based)
         if (typeFilters.name) {

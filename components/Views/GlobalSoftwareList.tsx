@@ -66,7 +66,7 @@ export const GlobalSoftwareList: React.FC<GlobalSoftwareListProps> = ({ labs, on
             return acc;
         }, {} as Record<string, SoftwareGroup>);
 
-        let list = Object.values(grouped);
+        let list: SoftwareGroup[] = Object.values(grouped);
 
         // 2. Apply Column Filters
         if (filters.name) {

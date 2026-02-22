@@ -17,6 +17,7 @@ interface LabDetailProps {
     onUpdate: (updatedLab: Lab) => void;
     onMoveEquipment?: (targetLabIndex: number, equipmentIndex: number, unitIndices?: number[]) => void;
     onMoveSoftware?: (targetLabIndex: number, softwareIndex: number) => void;
+    onCopyEquipmentData?: (sourceEquipment: Equipo, targets: { labIndex: number, equipmentIndex: number }[], options: { fichaTecnica: boolean, procedimientos: boolean }) => void;
     initialEquipmentIndex?: number;
     initialSoftwareIndex?: number;
 }
@@ -31,6 +32,7 @@ export const LabDetail: React.FC<LabDetailProps> = ({
     onUpdate,
     onMoveEquipment,
     onMoveSoftware,
+    onCopyEquipmentData,
     initialEquipmentIndex,
     initialSoftwareIndex
 }) => {
@@ -595,7 +597,10 @@ export const LabDetail: React.FC<LabDetailProps> = ({
         return (
             <EquipmentDetail
                 equipment={formData.equipos[selectedEquipmentIndex]}
+                allLabs={allLabs}
+                currentLabIndex={currentLabIndex}
                 onUpdate={updateEquipment}
+                onCopyEquipmentData={onCopyEquipmentData}
                 onBack={() => setSelectedEquipmentIndex(null)}
             />
         );
