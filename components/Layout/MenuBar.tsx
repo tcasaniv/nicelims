@@ -14,6 +14,7 @@ interface MenuBarProps {
   onNavigate: (view: ViewType) => void;
   onAddLab: () => void;
   onShowAbout: () => void;
+  onNewFile: () => void;
 }
 
 export const MenuBar: React.FC<MenuBarProps> = ({
@@ -26,7 +27,8 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   toggleSidebar,
   onNavigate,
   onAddLab,
-  onShowAbout
+  onShowAbout,
+  onNewFile
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -56,6 +58,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({
     {
       label: 'Archivo',
       items: [
+        { label: 'Nuevo archivo', action: onNewFile, icon: <Plus size={14} /> },
         { label: 'Abrir archivo', action: triggerImport, icon: <FileJson size={14} /> },
         { label: 'Renombrar archivo', action: onRename, icon: <FilePenLine size={14} /> },
         { label: 'Exportar archivo', action: onExport, icon: <Download size={14} /> },

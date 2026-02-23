@@ -40,6 +40,7 @@ const App: React.FC = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
     const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+    const [isNewFileModalOpen, setIsNewFileModalOpen] = useState(false);
     const [tempFileName, setTempFileName] = useState("");
     const [labToDelete, setLabToDelete] = useState<number | null>(null);
 
@@ -104,6 +105,16 @@ const App: React.FC = () => {
         document.body.appendChild(downloadAnchorNode);
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
+    };
+
+    // New File Logic
+    const handleNewFile = () => {
+        setData(DEFAULT_DATA);
+        setFileName("data_lims");
+        setCurrentView('DASHBOARD');
+        setSelectedLabIndex(null);
+        setNavTarget(null);
+        setIsNewFileModalOpen(false);
     };
 
     // Rename Logic
@@ -463,6 +474,7 @@ const App: React.FC = () => {
                     onNavigate={navigateTo}
                     onAddLab={handleAddLab}
                     onShowAbout={() => setIsAboutModalOpen(true)}
+                    onNewFile={() => setIsNewFileModalOpen(true)}
                 />
 
                 <main className="flex-1 overflow-auto p-4 md:p-8">
@@ -575,6 +587,20 @@ const App: React.FC = () => {
                         }}
                     />
                 </div>
+            </Modal>
+
+            <Modal
+                isOpen={isNewFileModalOpen}
+                onClose={() => setIsNewFileModalOpen(false)}
+                title="Nuevo Archivo"
+                footer={
+                    <>
+                        <Button variant="ghost" onClick={() => setIsNewFileModalOpen(false)}>Cancelar</Button>
+                        <Button variant="danger" onClick={handleNewFile}>Crear Nuevo Archivo</Button>
+                    </>
+                }
+            >
+                <p>¿Estás seguro de que deseas crear un nuevo archivo? Se perderán todos los cambios no exportados.</p>
             </Modal>
 
             <Modal
