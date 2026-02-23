@@ -101,6 +101,8 @@ export const LabDetail: React.FC<LabDetailProps> = ({
         setFormData(lab);
     }, [lab]);
 
+    const hasChanges = JSON.stringify(formData) !== JSON.stringify(lab);
+
     // Handle deep navigation (initial selections from global views)
     useEffect(() => {
         if (initialEquipmentIndex !== undefined) {
@@ -639,7 +641,10 @@ export const LabDetail: React.FC<LabDetailProps> = ({
                         <Button variant="secondary" onClick={() => setIsEditing(true)}>Editar Info</Button>
                     )}
                     {activeTab === 'INFO' && isEditing && (
-                        <Button onClick={handleSave} className="gap-2"> <Save size={16} /> Guardar</Button>
+                        <Button onClick={handleSave} disabled={!hasChanges} className="gap-2">
+                            <Save size={16} /> Guardar
+                            {hasChanges && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse ml-1" />}
+                        </Button>
                     )}
                 </div>
             </div>

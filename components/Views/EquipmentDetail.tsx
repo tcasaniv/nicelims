@@ -36,6 +36,8 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({ equipment, all
         } as Equipo));
     };
 
+    const hasChanges = JSON.stringify(formData) !== JSON.stringify(equipment);
+
     const saveChanges = () => {
         onUpdate(formData);
     };
@@ -64,7 +66,10 @@ export const EquipmentDetail: React.FC<EquipmentDetailProps> = ({ equipment, all
                             <Copy size={16} /> Copiar a otros...
                         </Button>
                     )}
-                    <Button onClick={saveChanges} className="gap-2"> <Save size={16} /> Guardar Equipo</Button>
+                    <Button onClick={saveChanges} disabled={!hasChanges} className="gap-2">
+                        <Save size={16} /> Guardar Equipo
+                        {hasChanges && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse ml-1" />}
+                    </Button>
                 </div>
             </div>
 

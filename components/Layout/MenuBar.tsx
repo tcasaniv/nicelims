@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Download, Moon, Sun, Monitor, Menu, Plus, Info, Settings, PanelLeft, ChevronDown, ChevronRight, X, FileJson, Layout, HardDrive, Users, Cpu, FilePenLine, CalendarRange, ClipboardCheck } from 'lucide-react';
+import { Download, Moon, Sun, Monitor, Menu, Plus, Info, Settings, PanelLeft, ChevronDown, ChevronRight, X, FileJson, Layout, HardDrive, Users, Cpu, FilePenLine, CalendarRange, ClipboardCheck, Save, CheckSquare, Square } from 'lucide-react';
 import { ThemeMode, ViewType } from '../../types';
 
 interface MenuBarProps {
@@ -15,6 +15,10 @@ interface MenuBarProps {
   onAddLab: () => void;
   onShowAbout: () => void;
   onNewFile: () => void;
+  autoSave: boolean;
+  toggleAutoSave: () => void;
+  hasUnsavedChanges: boolean;
+  onManualSave: () => void;
 }
 
 export const MenuBar: React.FC<MenuBarProps> = ({
@@ -25,10 +29,15 @@ export const MenuBar: React.FC<MenuBarProps> = ({
   theme,
   setTheme,
   toggleSidebar,
+  sidebarOpen,
   onNavigate,
   onAddLab,
   onShowAbout,
-  onNewFile
+  onNewFile,
+  autoSave,
+  toggleAutoSave,
+  hasUnsavedChanges,
+  onManualSave
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,6 +69,8 @@ export const MenuBar: React.FC<MenuBarProps> = ({
       items: [
         { label: 'Nuevo archivo', action: onNewFile, icon: <Plus size={14} /> },
         { label: 'Abrir archivo', action: triggerImport, icon: <FileJson size={14} /> },
+        { label: 'Guardar', action: onManualSave, icon: <Save size={14} /> },
+        { label: 'Guardado automático', action: toggleAutoSave, icon: autoSave ? <CheckSquare size={14} className="text-blue-500" /> : <Square size={14} /> },
         { label: 'Renombrar archivo', action: onRename, icon: <FilePenLine size={14} /> },
         { label: 'Exportar archivo', action: onExport, icon: <Download size={14} /> },
       ]
@@ -180,6 +191,21 @@ export const MenuBar: React.FC<MenuBarProps> = ({
 
       {/* --- RIGHT ACTIONS --- */}
       <div className="flex items-center gap-2">
+        <button
+          onClick={onManualSave}
+          disabled={!hasUnsavedChanges}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+            hasUnsavedChanges
+              ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
+              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 cursor-default'
+          }`}
+          title={hasUnsavedChanges ? "Guardar cambios" : "No hay cambios sin guardar"}
+        >
+          <Save size={14} />
+          <span className="hidden sm:inline">Guardar</span>
+          {hasUnsavedChanges && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+        </button>
+
         <input
           type="file"
           accept=".json"

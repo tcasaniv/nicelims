@@ -19,6 +19,8 @@ export const SoftwareDetail: React.FC<SoftwareDetailProps> = ({ software, onUpda
     const [newPhotoUrl, setNewPhotoUrl] = useState("");
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
+    const hasChanges = JSON.stringify(formData) !== JSON.stringify(software);
+
     const saveChanges = () => {
         onUpdate(formData);
     };
@@ -72,7 +74,10 @@ export const SoftwareDetail: React.FC<SoftwareDetailProps> = ({ software, onUpda
                         </p>
                     </div>
                 </div>
-                <Button onClick={saveChanges} className="gap-2"> <Save size={16} /> Guardar Software</Button>
+                <Button onClick={saveChanges} disabled={!hasChanges} className="gap-2">
+                    <Save size={16} /> Guardar Software
+                    {hasChanges && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse ml-1" />}
+                </Button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-300">

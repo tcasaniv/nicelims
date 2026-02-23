@@ -44,6 +44,74 @@ const App: React.FC = () => {
     const [tempFileName, setTempFileName] = useState("");
     const [labToDelete, setLabToDelete] = useState<number | null>(null);
 
+    // Auto-save state
+    const [autoSave, setAutoSave] = useState(false);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const [isInitialized, setIsInitialized] = useState(false);
+
+    // Initial load from localStorage
+    useEffect(() => {
+        const savedData = localStorage.getItem('nicelims_data');
+        const savedFileName = localStorage.getItem('nicelims_filename');
+        const savedAutoSave = localStorage.getItem('nicelims_autosave');
+
+        if (savedData) {
+            try {
+                setData(JSON.parse(savedData));
+            } catch (e) {
+                console.error("Failed to parse saved data");
+            }
+        }
+        if (savedFileName) {
+            setFileName(savedFileName);
+        }
+        if (savedAutoSave) {
+            setAutoSave(savedAutoSave === 'true');
+        }
+        setIsInitialized(true);
+    }, []);
+
+    // Auto-save effect
+    useEffect(() => {
+        if (!isInitialized) return;
+
+        if (autoSave) {
+            localStorage.setItem('nicelims_data', JSON.stringify(data));
+            localStorage.setItem('nicelims_filename', fileName);
+            setHasUnsavedChanges(false);
+        } else {
+            const savedData = localStorage.getItem('nicelims_data');
+            const savedFileName = localStorage.getItem('nicelims_filename');
+            const currentDataStr = JSON.stringify(data);
+            
+            if (savedData !== currentDataStr || savedFileName !== fileName) {
+                setHasUnsavedChanges(true);
+            } else {
+                setHasUnsavedChanges(false);
+            }
+        }
+    }, [data, fileName, autoSave, isInitialized]);
+
+    // Handle auto-save toggle
+    const toggleAutoSave = () => {
+        const newValue = !autoSave;
+        setAutoSave(newValue);
+        localStorage.setItem('nicelims_autosave', String(newValue));
+        if (newValue) {
+            // Immediately save current state if turned on
+            localStorage.setItem('nicelims_data', JSON.stringify(data));
+            localStorage.setItem('nicelims_filename', fileName);
+            setHasUnsavedChanges(false);
+        }
+    };
+
+    // Manual save
+    const handleManualSave = () => {
+        localStorage.setItem('nicelims_data', JSON.stringify(data));
+        localStorage.setItem('nicelims_filename', fileName);
+        setHasUnsavedChanges(false);
+    };
+
     // Theme Logic
     useEffect(() => {
         const root = window.document.documentElement;
@@ -475,6 +543,10 @@ const App: React.FC = () => {
                     onAddLab={handleAddLab}
                     onShowAbout={() => setIsAboutModalOpen(true)}
                     onNewFile={() => setIsNewFileModalOpen(true)}
+                    autoSave={autoSave}
+                    toggleAutoSave={toggleAutoSave}
+                    hasUnsavedChanges={hasUnsavedChanges}
+                    onManualSave={handleManualSave}
                 />
 
                 <main className="flex-1 overflow-auto p-4 md:p-8">

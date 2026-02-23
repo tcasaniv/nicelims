@@ -20,6 +20,8 @@ export const Settings: React.FC<SettingsProps> = ({ data, onUpdate }) => {
     }));
   };
 
+  const hasChanges = JSON.stringify(formData) !== JSON.stringify(data);
+
   const handleSave = () => {
     onUpdate(formData);
     // Visual feedback could be added here
@@ -38,8 +40,9 @@ export const Settings: React.FC<SettingsProps> = ({ data, onUpdate }) => {
           <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Configuración del Sistema</h2>
           <p className="text-sm text-zinc-500">Información institucional y administrativa.</p>
         </div>
-        <Button onClick={handleSave} className="gap-2">
+        <Button onClick={handleSave} disabled={!hasChanges} className="gap-2">
           <Save size={16} /> Guardar Cambios
+          {hasChanges && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse ml-1" />}
         </Button>
       </div>
 
