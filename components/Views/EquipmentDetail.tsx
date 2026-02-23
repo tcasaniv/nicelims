@@ -704,6 +704,7 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
         maint: ""
     });
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+    const [isEditingTable, setIsEditingTable] = useState(false);
 
     const getProcessedUnits = () => {
         let units = (formData.HojasDeVidaEquipos || []).map((u, i) => ({ ...u, originalIndex: i }));
@@ -812,6 +813,13 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
         setFormData(prev => ({ ...prev, HojasDeVidaEquipos: newUnits }));
     };
 
+    const handleTableEdit = (idx: number, field: string, value: string) => {
+        const unit = (formData.HojasDeVidaEquipos || [])[idx];
+        if (!unit) return;
+        const newUnit = { ...unit, infoEquipo: { ...(unit.infoEquipo || {}), [field]: value } as any };
+        updateUnit(idx, newUnit);
+    };
+
     // Move Logic
     const moveUnit = (idx: number, direction: 'UP' | 'DOWN') => {
         const newUnits = [...(formData.HojasDeVidaEquipos || [])];
@@ -843,7 +851,12 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
             <CardHeader>
                 <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
                     <CardTitle>Inventario de Unidades</CardTitle>
-                    <Button onClick={addUnit}><Plus size={16} className="mr-2" /> Nueva Unidad</Button>
+                    <div className="flex gap-2">
+                        <Button variant={isEditingTable ? "primary" : "secondary"} onClick={() => setIsEditingTable(!isEditingTable)}>
+                            {isEditingTable ? "Desactivar Edición" : "Activar Edición"}
+                        </Button>
+                        <Button onClick={addUnit}><Plus size={16} className="mr-2" /> Nueva Unidad</Button>
+                    </div>
                 </div>
             </CardHeader>
             <CardContent className="p-0">
@@ -888,11 +901,42 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
                                 <tr><td colSpan={5} className="px-6 py-8 text-center text-zinc-500">No se encontraron unidades.</td></tr>
                             )}
                             {processedUnits.map((item, idx) => (
-                                <tr key={item.originalIndex} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => setSelectedUnitIndex(item.originalIndex)}>
-                                    <td className="px-6 py-3 font-medium font-mono">{item.infoEquipo?.["Codigo Inventario Equipo"] || "Sin Código"}</td>
-                                    <td className="px-6 py-3">{item.infoEquipo?.Ubicación || "-"}</td>
-                                    <td className="px-6 py-3">{item.infoEquipo?.["FECHA DE ADQUISICIÓN"] || "-"}</td>
-                                    <td className="px-6 py-3"><span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-100">{(item.mantenimientos || []).length} regs</span></td>
+                                <tr key={item.originalIndex} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => !isEditingTable && setSelectedUnitIndex(item.originalIndex)}>
+                                    <td className="px-6 py-3 font-medium font-mono">
+                                        {isEditingTable ? (
+                                            <Input
+                                                value={item.infoEquipo?.["Codigo Inventario Equipo"] || ""}
+                                                onChange={e => handleTableEdit(item.originalIndex, "Codigo Inventario Equipo", e.target.value)}
+                                                className="h-8 text-xs font-mono"
+                                            />
+                                        ) : (
+                                            item.infoEquipo?.["Codigo Inventario Equipo"] || "Sin Código"
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-3">
+                                        {isEditingTable ? (
+                                            <Input
+                                                value={item.infoEquipo?.Ubicación || ""}
+                                                onChange={e => handleTableEdit(item.originalIndex, "Ubicación", e.target.value)}
+                                                className="h-8 text-xs"
+                                            />
+                                        ) : (
+                                            item.infoEquipo?.Ubicación || "-"
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-3">
+                                        {isEditingTable ? (
+                                            <Input
+                                                type="date"
+                                                value={item.infoEquipo?.["FECHA DE ADQUISICIÓN"] || ""}
+                                                onChange={e => handleTableEdit(item.originalIndex, "FECHA DE ADQUISICIÓN", e.target.value)}
+                                                className="h-8 text-xs"
+                                            />
+                                        ) : (
+                                            item.infoEquipo?.["FECHA DE ADQUISICIÓN"] || "-"
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-3" onClick={() => isEditingTable && setSelectedUnitIndex(item.originalIndex)}><span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-100 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors">{(item.mantenimientos || []).length} regs</span></td>
                                     <td className="px-6 py-3 text-right">
                                         <div className="flex justify-end items-center gap-1">
                                             {!isReorderDisabled && (
@@ -904,6 +948,11 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
                                                         <ArrowDown size={14} />
                                                     </Button>
                                                 </div>
+                                            )}
+                                            {isEditingTable && (
+                                                <Button variant="icon" action="primary" size="icon-md" onClick={(e) => { e.stopPropagation(); setSelectedUnitIndex(item.originalIndex); }} title="Editar Detalles">
+                                                    <Wrench size={16} />
+                                                </Button>
                                             )}
                                             <Button variant="icon" action="primary" size="icon-md" onClick={(e) => { e.stopPropagation(); duplicateUnit(item.originalIndex); }} title="Duplicar">
                                                 <Copy size={16} />
@@ -942,12 +991,12 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
 };
 
 // --- UNIT DETAIL (Nested in Life Sheets) ---
-const UnitDetail = ({ unit, allUnits, onUpdate, onBulkUpdate, onBack }: { 
-    unit: HojaDeVidaEquipo, 
-    allUnits: HojaDeVidaEquipo[], 
-    onUpdate: (u: HojaDeVidaEquipo) => void, 
+const UnitDetail = ({ unit, allUnits, onUpdate, onBulkUpdate, onBack }: {
+    unit: HojaDeVidaEquipo,
+    allUnits: HojaDeVidaEquipo[],
+    onUpdate: (u: HojaDeVidaEquipo) => void,
     onBulkUpdate: (units: HojaDeVidaEquipo[]) => void,
-    onBack: () => void 
+    onBack: () => void
 }) => {
     const [maintenancePhotoModal, setMaintenancePhotoModal] = useState<{ logIdx: number; isOpen: boolean } | null>(null);
     const [newMaintPhotoUrl, setNewMaintPhotoUrl] = useState("");
@@ -1050,8 +1099,8 @@ const UnitDetail = ({ unit, allUnits, onUpdate, onBulkUpdate, onBack }: {
             const targetLogs = [...(targetUnit.mantenimientos || [])];
 
             // Check for duplicates (same activity and date)
-            const isDuplicate = targetLogs.some(log => 
-                log["Actividad realizada"] === sourceLog["Actividad realizada"] && 
+            const isDuplicate = targetLogs.some(log =>
+                log["Actividad realizada"] === sourceLog["Actividad realizada"] &&
                 log.Fecha === sourceLog.Fecha
             );
 
@@ -1059,7 +1108,7 @@ const UnitDetail = ({ unit, allUnits, onUpdate, onBulkUpdate, onBack }: {
                 const newLog = JSON.parse(JSON.stringify(sourceLog));
                 newLog.Nro = targetLogs.length + 1;
                 targetLogs.push(newLog);
-                
+
                 // Sort target logs
                 targetLogs.sort((a, b) => {
                     const dateA = new Date(a.Fecha || '1970-01-01').getTime();
