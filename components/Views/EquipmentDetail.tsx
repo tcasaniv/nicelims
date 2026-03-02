@@ -1267,7 +1267,10 @@ const UnitDetail = ({ unit, allUnits, onUpdate, onBulkUpdate, onBack }: {
                             </div>
                             <div className="flex justify-between items-start">
                                 <span className="font-mono text-xs text-zinc-400">Reg #{log.Nro}</span>
-                                <Input type="date" value={log.Fecha} onChange={e => updateMaintenance(idx, { ...log, Fecha: e.target.value })} className="w-auto text-xs py-1" />
+                                <div className="flex gap-2">
+                                    <Input type="date" label="Fecha Inicio" value={log.Fecha || ""} onChange={e => updateMaintenance(idx, { ...log, Fecha: e.target.value })} className="w-auto text-xs py-1" />
+                                    <Input type="date" label="Fecha Fin" value={log.fechaFin || ""} onChange={e => updateMaintenance(idx, { ...log, fechaFin: e.target.value })} className="w-auto text-xs py-1" />
+                                </div>
                             </div>
                             <Input label="Actividad Realizada" value={log["Actividad realizada"]} onChange={e => updateMaintenance(idx, { ...log, "Actividad realizada": e.target.value })} />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

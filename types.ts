@@ -143,7 +143,8 @@ export interface HojaDeVidaEquipo {
 export interface MantenimientoLog {
   "Nro"?: number;
   "Actividad realizada"?: string;
-  "Fecha"?: string;
+  "Fecha"?: string; // Used as start date
+  "fechaFin"?: string;
   "Responsable"?: string;
   "Observaciones"?: string;
   "Fotografias"?: string[];

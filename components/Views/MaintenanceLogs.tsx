@@ -1,8 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { Lab } from '../../types';
-import { Card, CardContent } from '../ui/Card';
-import { ClipboardCheck, Search, Image as ImageIcon, List, Calendar as CalendarIcon, MapPin, Tag, User, Settings2, Check, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Card, CardContent, CardHeader } from '../ui/Card';
+import { ClipboardCheck, Search, Image as ImageIcon, List, Calendar as CalendarIcon, MapPin, Tag, User, Settings2, Check, X, ChevronLeft, ChevronRight, BarChartHorizontal } from 'lucide-react';
 import { ImageViewer } from '../ui/ImageViewer';
 
 interface MaintenanceLogsProps {
@@ -12,6 +12,7 @@ interface MaintenanceLogsProps {
 interface FlatLog {
     id: string; // unique combo
     date: string;
+    endDate: string;
     activity: string;
     responsible: string;
     observations: string;
@@ -25,7 +26,7 @@ interface FlatLog {
     photos: string[];
 }
 
-type Tab = 'LIST' | 'GALLERY' | 'CALENDAR';
+type Tab = 'LIST' | 'GALLERY' | 'CALENDAR' | 'GANTT';
 
 const ALL_COLUMNS = [
     { id: 'date', label: 'Fecha' },
@@ -79,6 +80,7 @@ export const MaintenanceLogs: React.FC<MaintenanceLogsProps> = ({ labs }) => {
                         logs.push({
                             id: `${lIdx}-${eIdx}-${uIdx}-${logIdx}`,
                             date: log.Fecha || "1970-01-01",
+                            endDate: log.fechaFin || "",
                             activity: log["Actividad realizada"] || "",
                             responsible: log.Responsable || "-",
                             observations: log.Observaciones || "",
@@ -192,24 +194,30 @@ export const MaintenanceLogs: React.FC<MaintenanceLogsProps> = ({ labs }) => {
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-zinc-200 dark:border-zinc-800">
+            <div className="flex border-b border-zinc-200 dark:border-zinc-800 overflow-x-auto">
                 <button
-                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'LIST' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
+                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'LIST' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
                     onClick={() => setActiveTab('LIST')}
                 >
                     <List size={16} /> Listado Cronológico
                 </button>
                 <button
-                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'GALLERY' ? 'border-purple-500 text-purple-600 dark:text-purple-400' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
+                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'GALLERY' ? 'border-purple-500 text-purple-600 dark:text-purple-400' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
                     onClick={() => setActiveTab('GALLERY')}
                 >
                     <ImageIcon size={16} /> Galería de Evidencias
                 </button>
                 <button
-                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'CALENDAR' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
+                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'CALENDAR' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
                     onClick={() => setActiveTab('CALENDAR')}
                 >
                     <CalendarIcon size={16} /> Vista de Calendario
+                </button>
+                <button
+                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'GANTT' ? 'border-amber-500 text-amber-600 dark:text-amber-400' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
+                    onClick={() => setActiveTab('GANTT')}
+                >
+                    <BarChartHorizontal size={16} /> Diagrama Gantt
                 </button>
             </div>
 
@@ -565,6 +573,9 @@ export const MaintenanceLogs: React.FC<MaintenanceLogsProps> = ({ labs }) => {
                         </div>
                     </div>
                 )}
+                {activeTab === 'GANTT' && (
+                    <GanttView logs={filteredLogs} />
+                )}
             </div>
 
             <ImageViewer
@@ -573,5 +584,128 @@ export const MaintenanceLogs: React.FC<MaintenanceLogsProps> = ({ labs }) => {
                 src={zoomedImage || ""}
             />
         </div>
+    );
+};
+
+// --- GANTT VIEW COMPONENT ---
+const GanttView: React.FC<{ logs: FlatLog[] }> = ({ logs }) => {
+    // Filter logs with dates
+    const scheduledLogs = logs.filter(l => l.date && l.date !== "1970-01-01");
+
+    if (scheduledLogs.length === 0) {
+        return (
+            <div className="text-center py-16 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border-2 border-dashed border-zinc-200 dark:border-zinc-700">
+                <BarChartHorizontal className="mx-auto h-10 w-10 text-zinc-300 mb-2" />
+                <h3 className="text-lg font-medium text-zinc-500">No hay actividades registradas con fecha</h3>
+                <p className="text-sm text-zinc-400">Las actividades registradas aparecerán aquí como un diagrama de Gantt.</p>
+            </div>
+        );
+    }
+
+    // Find min and max dates
+    let minDate = new Date();
+    let maxDate = new Date();
+    let hasDates = false;
+
+    scheduledLogs.forEach(l => {
+        if (l.date) {
+            const d = new Date(l.date);
+            if (!hasDates || d < minDate) minDate = d;
+            hasDates = true;
+        }
+        if (l.endDate) {
+            const d = new Date(l.endDate);
+            if (!hasDates || d > maxDate) maxDate = d;
+            hasDates = true;
+        }
+    });
+
+    if (!hasDates) return null;
+
+    // Add some padding to dates (1 week before and after)
+    minDate.setDate(minDate.getDate() - 7);
+    maxDate.setDate(maxDate.getDate() + 7);
+
+    const totalDays = Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 3600 * 24));
+    
+    // Generate months for header
+    const months: { label: string, days: number }[] = [];
+    let currentMonth = new Date(minDate);
+    while (currentMonth <= maxDate) {
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        
+        // Calculate days belonging to this month within our range
+        let startDay = 1;
+        if (currentMonth.getTime() === minDate.getTime()) startDay = minDate.getDate();
+        
+        let endDay = daysInMonth;
+        if (year === maxDate.getFullYear() && month === maxDate.getMonth()) endDay = maxDate.getDate();
+        
+        const days = endDay - startDay + 1;
+        
+        months.push({
+            label: currentMonth.toLocaleString('default', { month: 'short', year: 'numeric' }),
+            days
+        });
+        
+        currentMonth = new Date(year, month + 1, 1);
+    }
+
+    return (
+        <Card className="overflow-hidden">
+            <CardHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800/50">
+                <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
+                        <BarChartHorizontal size={18} className="text-amber-500" />
+                        Diagrama de Gantt
+                    </h3>
+                </div>
+            </CardHeader>
+            <div className="overflow-x-auto">
+                <div className="min-w-[800px] p-4">
+                    {/* Header: Months */}
+                    <div className="flex border-b border-zinc-200 dark:border-zinc-700 mb-2 ml-[250px]">
+                        {months.map((m, i) => (
+                            <div key={i} className="text-xs font-semibold text-zinc-500 text-center border-l border-zinc-200 dark:border-zinc-700 first:border-l-0 py-1" style={{ width: `${(m.days / totalDays) * 100}%` }}>
+                                {m.label}
+                            </div>
+                        ))}
+                    </div>
+                    
+                    {/* Tasks */}
+                    <div className="space-y-2">
+                        {scheduledLogs.map((l, i) => {
+                            const start = l.date ? new Date(l.date) : new Date(l.endDate || minDate);
+                            const end = l.endDate ? new Date(l.endDate) : new Date(l.date || maxDate);
+                            
+                            // Ensure start <= end
+                            const actualStart = start < end ? start : end;
+                            const actualEnd = start > end ? start : end;
+
+                            const leftPercent = Math.max(0, (actualStart.getTime() - minDate.getTime()) / (maxDate.getTime() - minDate.getTime()) * 100);
+                            const widthPercent = Math.max(1, (actualEnd.getTime() - actualStart.getTime()) / (maxDate.getTime() - minDate.getTime()) * 100);
+
+                            return (
+                                <div key={i} className="flex items-center gap-4 group">
+                                    <div className="w-[234px] shrink-0 truncate text-sm">
+                                        <div className="font-medium text-zinc-800 dark:text-zinc-200 truncate" title={l.activity}>{l.activity || "Sin título"}</div>
+                                        <div className="text-xs text-zinc-500 truncate" title={`${l.equipmentName} - ${l.unitCode}`}>{l.equipmentName} - {l.unitCode}</div>
+                                    </div>
+                                    <div className="flex-1 relative h-8 bg-zinc-50 dark:bg-zinc-800/50 rounded border border-zinc-100 dark:border-zinc-800">
+                                        <div 
+                                            className="absolute top-1 bottom-1 bg-amber-500/80 hover:bg-amber-500 rounded-sm shadow-sm transition-colors cursor-pointer"
+                                            style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
+                                            title={`${l.activity}\nEquipo: ${l.equipmentName}\nInicio: ${actualStart.toLocaleDateString()}\nFin: ${actualEnd.toLocaleDateString()}`}
+                                        />
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+        </Card>
     );
 };
