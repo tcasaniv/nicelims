@@ -69,6 +69,7 @@ export interface InfoEquipoDetalle {
   "Fabricante"?: string;
   "Marca"?: string;
   "Modelo"?: string;
+  "Dimensiones"?: string;
 }
 
 export interface Caracteristica {
@@ -116,9 +117,14 @@ export interface MantenimientoTask {
 export interface HojaDeVidaEquipo {
   "infoEquipo"?: {
     "Codigo Inventario Equipo"?: string;
+    "Codigo Patrimonial"?: string;
+    "N° de serie"?: string;
     "FECHA DE ADQUISICIÓN"?: string;
+    "Año Fabricación"?: string;
     "MODO DE ADQUISICIÓN"?: string;
     "Ubicación"?: string;
+    "Estado de conservación"?: string;
+    "Estado de uso"?: string;
   };
   "mantenimientos"?: MantenimientoLog[];
   "nota"?: string;
@@ -129,6 +135,7 @@ export interface HojaDeVidaEquipo {
   };
   "HechoPor"?: string;
   "RevisadoPor"?: string;
+  "documentos"?: Documento[];
 }
 
 export interface MantenimientoLog {

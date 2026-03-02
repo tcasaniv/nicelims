@@ -343,6 +343,7 @@ const GeneralTab = ({ formData, setFormData, handleInfoChange }: { formData: Equ
                             <Input label="Tipo de Equipo" value={formData.infoEquipo?.["Tipo de equipo:"]} onChange={e => handleInfoChange("Tipo de equipo:", e.target.value)} />
                             <Input label="Nº Total de Equipos" value={formData["Nº DE EQUIPOS"]} onChange={e => setFormData({ ...formData, "Nº DE EQUIPOS": e.target.value })} />
                         </div>
+                        <Input label="Dimensiones" value={formData.infoEquipo?.Dimensiones} onChange={e => handleInfoChange("Dimensiones", e.target.value)} />
                         <Input textarea label="Comentarios Generales" value={formData.COMENTARIOS} onChange={e => setFormData({ ...formData, COMENTARIOS: e.target.value })} />
                     </CardContent>
                 </Card>
@@ -991,12 +992,12 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
 };
 
 // --- UNIT DETAIL (Nested in Life Sheets) ---
-const UnitDetail = ({ unit, allUnits, onUpdate, onBulkUpdate, onBack }: {
-    unit: HojaDeVidaEquipo,
-    allUnits: HojaDeVidaEquipo[],
-    onUpdate: (u: HojaDeVidaEquipo) => void,
+const UnitDetail = ({ unit, allUnits, onUpdate, onBulkUpdate, onBack }: { 
+    unit: HojaDeVidaEquipo, 
+    allUnits: HojaDeVidaEquipo[], 
+    onUpdate: (u: HojaDeVidaEquipo) => void, 
     onBulkUpdate: (units: HojaDeVidaEquipo[]) => void,
-    onBack: () => void
+    onBack: () => void 
 }) => {
     const [maintenancePhotoModal, setMaintenancePhotoModal] = useState<{ logIdx: number; isOpen: boolean } | null>(null);
     const [newMaintPhotoUrl, setNewMaintPhotoUrl] = useState("");
@@ -1013,6 +1014,21 @@ const UnitDetail = ({ unit, allUnits, onUpdate, onBulkUpdate, onBack }: {
 
     const handleInfoChange = (key: string, value: string) => {
         onUpdate({ ...unit, infoEquipo: { ...(unit.infoEquipo || {}), [key]: value } as any });
+    };
+
+    const addDocument = () => {
+        const newDoc: Documento = { titulo: "", url: "" };
+        onUpdate({ ...unit, documentos: [...(unit.documentos || []), newDoc] });
+    };
+
+    const updateDocument = (idx: number, key: keyof Documento, value: string) => {
+        const newDocs = [...(unit.documentos || [])];
+        newDocs[idx] = { ...newDocs[idx], [key]: value };
+        onUpdate({ ...unit, documentos: newDocs });
+    };
+
+    const removeDocument = (idx: number) => {
+        onUpdate({ ...unit, documentos: (unit.documentos || []).filter((_, i) => i !== idx) });
     };
 
     // --- Helper to sort logs Chronologically (Oldest to Newest) ---
@@ -1099,8 +1115,8 @@ const UnitDetail = ({ unit, allUnits, onUpdate, onBulkUpdate, onBack }: {
             const targetLogs = [...(targetUnit.mantenimientos || [])];
 
             // Check for duplicates (same activity and date)
-            const isDuplicate = targetLogs.some(log =>
-                log["Actividad realizada"] === sourceLog["Actividad realizada"] &&
+            const isDuplicate = targetLogs.some(log => 
+                log["Actividad realizada"] === sourceLog["Actividad realizada"] && 
                 log.Fecha === sourceLog.Fecha
             );
 
@@ -1108,7 +1124,7 @@ const UnitDetail = ({ unit, allUnits, onUpdate, onBulkUpdate, onBack }: {
                 const newLog = JSON.parse(JSON.stringify(sourceLog));
                 newLog.Nro = targetLogs.length + 1;
                 targetLogs.push(newLog);
-
+                
                 // Sort target logs
                 targetLogs.sort((a, b) => {
                     const dateA = new Date(a.Fecha || '1970-01-01').getTime();
@@ -1134,11 +1150,77 @@ const UnitDetail = ({ unit, allUnits, onUpdate, onBulkUpdate, onBack }: {
 
             <Card>
                 <CardHeader><CardTitle>Datos de la Unidad</CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input label="Código Inventario" value={unit.infoEquipo?.["Codigo Inventario Equipo"]} onChange={e => handleInfoChange("Codigo Inventario Equipo", e.target.value)} />
-                    <Input label="Ubicación Física" value={unit.infoEquipo?.Ubicación} onChange={e => handleInfoChange("Ubicación", e.target.value)} />
-                    <Input label="Fecha Adquisición" type="date" value={unit.infoEquipo?.["FECHA DE ADQUISICIÓN"]} onChange={e => handleInfoChange("FECHA DE ADQUISICIÓN", e.target.value)} />
-                    <Input label="Modo Adquisición" value={unit.infoEquipo?.["MODO DE ADQUISICIÓN"]} onChange={e => handleInfoChange("MODO DE ADQUISICIÓN", e.target.value)} />
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input label="Código Inventario" value={unit.infoEquipo?.["Codigo Inventario Equipo"]} onChange={e => handleInfoChange("Codigo Inventario Equipo", e.target.value)} />
+                        <Input label="Código Patrimonial" value={unit.infoEquipo?.["Codigo Patrimonial"]} onChange={e => handleInfoChange("Codigo Patrimonial", e.target.value)} />
+                        <Input label="N° de serie" value={unit.infoEquipo?.["N° de serie"]} onChange={e => handleInfoChange("N° de serie", e.target.value)} />
+                        <Input label="Ubicación Física" value={unit.infoEquipo?.Ubicación} onChange={e => handleInfoChange("Ubicación", e.target.value)} />
+                        <Input label="Fecha Adquisición" type="date" value={unit.infoEquipo?.["FECHA DE ADQUISICIÓN"]} onChange={e => handleInfoChange("FECHA DE ADQUISICIÓN", e.target.value)} />
+                        <Input label="Año Fabricación" value={unit.infoEquipo?.["Año Fabricación"]} onChange={e => handleInfoChange("Año Fabricación", e.target.value)} />
+                        <Input label="Modo Adquisición" value={unit.infoEquipo?.["MODO DE ADQUISICIÓN"]} onChange={e => handleInfoChange("MODO DE ADQUISICIÓN", e.target.value)} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Estado de conservación</label>
+                            <select
+                                className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                value={unit.infoEquipo?.["Estado de conservación"] || ""}
+                                onChange={e => handleInfoChange("Estado de conservación", e.target.value)}
+                            >
+                                <option value="">Seleccionar...</option>
+                                <option value="Nuevo">Nuevo (N)</option>
+                                <option value="Bueno">Bueno (B)</option>
+                                <option value="Regular">Regular (R)</option>
+                                <option value="Malo">Malo (M)</option>
+                                <option value="RAEE">RAEE (X)</option>
+                                <option value="Chatarra">Chatarra (Y)</option>
+                            </select>
+                        </div>
+                        <Input label="Estado de uso" value={unit.infoEquipo?.["Estado de uso"]} onChange={e => handleInfoChange("Estado de uso", e.target.value)} placeholder="Ej. En uso, en desuso, repuesto..." />
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="flex items-center gap-2"><FileText size={18} /> Documentación de la Unidad</CardTitle>
+                        <Button size="sm" variant="secondary" onClick={addDocument}><Plus size={14} /></Button>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    {(unit.documentos || []).map((doc, idx) => (
+                        <div key={idx} className="flex gap-2 items-start bg-zinc-50 dark:bg-zinc-800/50 p-2 rounded-md border border-zinc-100 dark:border-zinc-800">
+                            <div className="flex-1 space-y-1">
+                                <Input
+                                    placeholder="Nombre del recurso (ej. Guía de remisión)"
+                                    value={doc.titulo}
+                                    onChange={e => updateDocument(idx, 'titulo', e.target.value)}
+                                    className="text-sm font-medium"
+                                />
+                                <Input
+                                    placeholder="URL (https://...)"
+                                    value={doc.url}
+                                    onChange={e => updateDocument(idx, 'url', e.target.value)}
+                                    className="text-xs font-mono text-zinc-500"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1 mt-1">
+                                {doc.url && (
+                                    <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                                        <Button variant="icon" action="primary" title="Abrir enlace">
+                                            <ExternalLink size={16} />
+                                        </Button>
+                                    </a>
+                                )}
+                                <Button variant="icon" action="danger" onClick={() => removeDocument(idx)} title="Eliminar">
+                                    <Trash2 size={16} />
+                                </Button>
+                            </div>
+                        </div>
+                    ))}
+                    {(unit.documentos || []).length === 0 && <p className="text-zinc-500 text-sm italic">No hay documentos registrados para esta unidad.</p>}
                 </CardContent>
             </Card>
 
