@@ -145,6 +145,7 @@ export interface MantenimientoLog {
   "Responsable"?: string;
   "Observaciones"?: string;
   "Fotografias"?: string[];
+  "documentos"?: Documento[];
 }
 
 // Software Structure

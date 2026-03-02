@@ -1105,6 +1105,27 @@ const UnitDetail = ({ unit, allUnits, onUpdate, onBulkUpdate, onBack }: {
         updateMaintenance(logIdx, updatedLog);
     };
 
+    const addDocumentToLog = (logIdx: number) => {
+        const log = (unit.mantenimientos || [])[logIdx];
+        const newDoc: Documento = { titulo: "", url: "" };
+        const updatedLog = { ...log, documentos: [...(log.documentos || []), newDoc] };
+        updateMaintenance(logIdx, updatedLog);
+    };
+
+    const updateDocumentInLog = (logIdx: number, docIdx: number, key: keyof Documento, value: string) => {
+        const log = (unit.mantenimientos || [])[logIdx];
+        const newDocs = [...(log.documentos || [])];
+        newDocs[docIdx] = { ...newDocs[docIdx], [key]: value };
+        const updatedLog = { ...log, documentos: newDocs };
+        updateMaintenance(logIdx, updatedLog);
+    };
+
+    const removeDocumentFromLog = (logIdx: number, docIdx: number) => {
+        const log = (unit.mantenimientos || [])[logIdx];
+        const updatedLog = { ...log, documentos: (log.documentos || []).filter((_, i) => i !== docIdx) };
+        updateMaintenance(logIdx, updatedLog);
+    };
+
     const copyMaintenanceToUnits = () => {
         if (!copyModal) return;
         const sourceLog = (unit.mantenimientos || [])[copyModal.logIdx];
@@ -1260,6 +1281,47 @@ const UnitDetail = ({ unit, allUnits, onUpdate, onBulkUpdate, onBack }: {
                                             <img src={photo} alt="evidencia" className="w-full h-full object-cover transition-transform hover:scale-110" />
                                         </div>
                                     ))}
+                                </div>
+                            </div>
+
+                            {/* Documents Section */}
+                            <div className="mt-4 border-t border-zinc-100 dark:border-zinc-800 pt-4">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-1"><FileText size={14} /> Documentación Relacionada</span>
+                                    <Button size="sm" variant="secondary" onClick={() => addDocumentToLog(idx)} className="h-6 px-2 text-xs"><Plus size={12} className="mr-1" /> Añadir Documento</Button>
+                                </div>
+                                <div className="space-y-2">
+                                    {(log.documentos || []).map((doc, docIdx) => (
+                                        <div key={docIdx} className="flex gap-2 items-start bg-zinc-50 dark:bg-zinc-800/50 p-2 rounded-md border border-zinc-100 dark:border-zinc-800">
+                                            <div className="flex-1 space-y-1">
+                                                <Input
+                                                    placeholder="Nombre del recurso (ej. Informe Técnico)"
+                                                    value={doc.titulo}
+                                                    onChange={e => updateDocumentInLog(idx, docIdx, 'titulo', e.target.value)}
+                                                    className="text-sm font-medium h-7"
+                                                />
+                                                <Input
+                                                    placeholder="URL (https://...)"
+                                                    value={doc.url}
+                                                    onChange={e => updateDocumentInLog(idx, docIdx, 'url', e.target.value)}
+                                                    className="text-xs font-mono text-zinc-500 h-7"
+                                                />
+                                            </div>
+                                            <div className="flex flex-col gap-1 mt-1">
+                                                {doc.url && (
+                                                    <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                                                        <Button variant="icon" action="primary" title="Abrir enlace" size="icon-sm">
+                                                            <ExternalLink size={14} />
+                                                        </Button>
+                                                    </a>
+                                                )}
+                                                <Button variant="icon" action="danger" onClick={() => removeDocumentFromLog(idx, docIdx)} title="Eliminar" size="icon-sm">
+                                                    <Trash2 size={14} />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {(log.documentos || []).length === 0 && <p className="text-zinc-400 text-xs italic">No hay documentos adjuntos a esta actividad.</p>}
                                 </div>
                             </div>
                         </CardContent>
