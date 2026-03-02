@@ -111,6 +111,8 @@ export interface MantenimientoTask {
     "amount"?: string;
   };
   "responsable"?: string;
+  "fechaInicio"?: string;
+  "fechaFin"?: string;
 }
 
 // Lifecycle Structure

@@ -540,6 +540,8 @@ const ProceduresTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
             task.descripcion.title = value;
         }
         if (field === 'responsable') task.responsable = value;
+        if (field === 'fechaInicio') task.fechaInicio = value;
+        if (field === 'fechaFin') task.fechaFin = value;
         if (field === 'cost') {
             if (!task["MONTO REF"]) task["MONTO REF"] = { currency: "S/.", amount: "0" };
             task["MONTO REF"].amount = value;
@@ -635,6 +637,10 @@ const ProceduresTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                             <Input label="Título Tarea" value={task.descripcion?.title} onChange={e => updateTask(idx, 'title', e.target.value)} />
                                             <Input label="Responsable" value={task.responsable} onChange={e => updateTask(idx, 'responsable', e.target.value)} />
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <Input type="date" label="Fecha Inicio Programada" value={task.fechaInicio || ""} onChange={e => updateTask(idx, 'fechaInicio', e.target.value)} />
+                                            <Input type="date" label="Fecha Fin Programada" value={task.fechaFin || ""} onChange={e => updateTask(idx, 'fechaFin', e.target.value)} />
                                         </div>
 
                                         {/* Steps Section */}
