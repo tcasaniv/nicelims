@@ -3,14 +3,14 @@ import React, { useState, useMemo } from 'react';
 import { Lab, MantenimientoTask } from '../../types';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { CalendarRange, Wrench, MapPin, AlertTriangle, List, LayoutGrid } from 'lucide-react';
+import { CalendarRange, Wrench, MapPin, AlertTriangle, List, LayoutGrid, Calendar as CalendarIcon, BarChartHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface MaintenancePlanProps {
     labs: Lab[];
 }
 
 type PlanType = 'preventivo' | 'correctivo';
-type ViewMode = 'BY_FREQUENCY' | 'BY_LAB';
+type ViewMode = 'BY_FREQUENCY' | 'BY_LAB' | 'GANTT' | 'CALENDAR';
 
 interface FlatTask {
     labName: string;
@@ -96,11 +96,11 @@ export const MaintenancePlan: React.FC<MaintenancePlanProps> = ({ labs }) => {
                     <p className="text-sm text-zinc-500">Gestión de actividades programadas y procedimientos.</p>
                 </div>
 
-                <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-md">
+                <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-md overflow-x-auto">
                     <Button
                         variant="ghost"
                         size="sm"
-                        className={viewMode === 'BY_FREQUENCY' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500'}
+                        className={`whitespace-nowrap ${viewMode === 'BY_FREQUENCY' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500'}`}
                         onClick={() => setViewMode('BY_FREQUENCY')}
                     >
                         <List size={14} className="mr-2" /> Por Frecuencia
@@ -108,10 +108,26 @@ export const MaintenancePlan: React.FC<MaintenancePlanProps> = ({ labs }) => {
                     <Button
                         variant="ghost"
                         size="sm"
-                        className={viewMode === 'BY_LAB' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500'}
+                        className={`whitespace-nowrap ${viewMode === 'BY_LAB' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500'}`}
                         onClick={() => setViewMode('BY_LAB')}
                     >
                         <LayoutGrid size={14} className="mr-2" /> Por Laboratorio
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`whitespace-nowrap ${viewMode === 'GANTT' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500'}`}
+                        onClick={() => setViewMode('GANTT')}
+                    >
+                        <BarChartHorizontal size={14} className="mr-2" /> Diagrama Gantt
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`whitespace-nowrap ${viewMode === 'CALENDAR' ? 'bg-white dark:bg-zinc-700 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500'}`}
+                        onClick={() => setViewMode('CALENDAR')}
+                    >
+                        <CalendarIcon size={14} className="mr-2" /> Calendario
                     </Button>
                 </div>
             </div>
@@ -134,7 +150,11 @@ export const MaintenancePlan: React.FC<MaintenancePlanProps> = ({ labs }) => {
 
             {/* Content */}
             <div className="space-y-6 animate-in fade-in duration-300">
-                {sortedGroupKeys.length === 0 ? (
+                {viewMode === 'GANTT' ? (
+                    <GanttView tasks={allTasks} />
+                ) : viewMode === 'CALENDAR' ? (
+                    <CalendarView tasks={allTasks} />
+                ) : sortedGroupKeys.length === 0 ? (
                     <div className="text-center py-16 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border-2 border-dashed border-zinc-200 dark:border-zinc-700">
                         <Wrench className="mx-auto h-10 w-10 text-zinc-300 mb-2" />
                         <h3 className="text-lg font-medium text-zinc-500">No hay tareas configuradas</h3>
@@ -187,7 +207,7 @@ export const MaintenancePlan: React.FC<MaintenancePlanProps> = ({ labs }) => {
                                                 )}
                                             </div>
 
-                                            {/* Right: Meta (Cost/Resp) */}
+                                            {/* Right: Meta (Cost/Resp/Dates) */}
                                             <div className="md:col-span-2 flex flex-col items-end justify-center text-right text-sm">
                                                 {item.task["MONTO REF"]?.amount && item.task["MONTO REF"].amount !== "0" && (
                                                     <span className="font-mono text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded mb-1">
@@ -197,6 +217,11 @@ export const MaintenancePlan: React.FC<MaintenancePlanProps> = ({ labs }) => {
                                                 {item.task.responsable && (
                                                     <span className="text-xs text-zinc-400 flex items-center gap-1">
                                                         Resp: {item.task.responsable}
+                                                    </span>
+                                                )}
+                                                {(item.task.fechaInicio || item.task.fechaFin) && (
+                                                    <span className="text-[10px] text-zinc-400 mt-1 block">
+                                                        {item.task.fechaInicio ? new Date(item.task.fechaInicio).toLocaleDateString() : '?'} - {item.task.fechaFin ? new Date(item.task.fechaFin).toLocaleDateString() : '?'}
                                                     </span>
                                                 )}
                                             </div>
@@ -209,5 +234,212 @@ export const MaintenancePlan: React.FC<MaintenancePlanProps> = ({ labs }) => {
                 )}
             </div>
         </div>
+    );
+};
+
+// --- GANTT VIEW COMPONENT ---
+const GanttView: React.FC<{ tasks: FlatTask[] }> = ({ tasks }) => {
+    // Filter tasks with dates
+    const scheduledTasks = tasks.filter(t => t.task.fechaInicio || t.task.fechaFin);
+
+    if (scheduledTasks.length === 0) {
+        return (
+            <div className="text-center py-16 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border-2 border-dashed border-zinc-200 dark:border-zinc-700">
+                <BarChartHorizontal className="mx-auto h-10 w-10 text-zinc-300 mb-2" />
+                <h3 className="text-lg font-medium text-zinc-500">No hay tareas programadas</h3>
+                <p className="text-sm text-zinc-400">Asigne fechas de inicio y fin a las tareas para verlas en el diagrama de Gantt.</p>
+            </div>
+        );
+    }
+
+    // Find min and max dates
+    let minDate = new Date();
+    let maxDate = new Date();
+    let hasDates = false;
+
+    scheduledTasks.forEach(t => {
+        if (t.task.fechaInicio) {
+            const d = new Date(t.task.fechaInicio);
+            if (!hasDates || d < minDate) minDate = d;
+            hasDates = true;
+        }
+        if (t.task.fechaFin) {
+            const d = new Date(t.task.fechaFin);
+            if (!hasDates || d > maxDate) maxDate = d;
+            hasDates = true;
+        }
+    });
+
+    if (!hasDates) return null;
+
+    // Add some padding to dates (1 week before and after)
+    minDate.setDate(minDate.getDate() - 7);
+    maxDate.setDate(maxDate.getDate() + 7);
+
+    const totalDays = Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 3600 * 24));
+    
+    // Generate months for header
+    const months: { label: string, days: number }[] = [];
+    let currentMonth = new Date(minDate);
+    while (currentMonth <= maxDate) {
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        
+        // Calculate days belonging to this month within our range
+        let startDay = 1;
+        if (currentMonth.getTime() === minDate.getTime()) startDay = minDate.getDate();
+        
+        let endDay = daysInMonth;
+        if (year === maxDate.getFullYear() && month === maxDate.getMonth()) endDay = maxDate.getDate();
+        
+        const days = endDay - startDay + 1;
+        
+        months.push({
+            label: currentMonth.toLocaleString('default', { month: 'short', year: 'numeric' }),
+            days
+        });
+        
+        currentMonth = new Date(year, month + 1, 1);
+    }
+
+    return (
+        <Card className="overflow-hidden">
+            <CardHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800/50">
+                <CardTitle className="text-lg flex items-center gap-2 text-zinc-700 dark:text-zinc-200">
+                    <BarChartHorizontal size={18} className="text-blue-500" />
+                    Diagrama de Gantt
+                </CardTitle>
+            </CardHeader>
+            <div className="overflow-x-auto">
+                <div className="min-w-[800px] p-4">
+                    {/* Header: Months */}
+                    <div className="flex border-b border-zinc-200 dark:border-zinc-700 mb-2 ml-[250px]">
+                        {months.map((m, i) => (
+                            <div key={i} className="text-xs font-semibold text-zinc-500 text-center border-l border-zinc-200 dark:border-zinc-700 first:border-l-0 py-1" style={{ width: `${(m.days / totalDays) * 100}%` }}>
+                                {m.label}
+                            </div>
+                        ))}
+                    </div>
+                    
+                    {/* Tasks */}
+                    <div className="space-y-2">
+                        {scheduledTasks.map((t, i) => {
+                            const start = t.task.fechaInicio ? new Date(t.task.fechaInicio) : new Date(t.task.fechaFin || minDate);
+                            const end = t.task.fechaFin ? new Date(t.task.fechaFin) : new Date(t.task.fechaInicio || maxDate);
+                            
+                            // Ensure start <= end
+                            const actualStart = start < end ? start : end;
+                            const actualEnd = start > end ? start : end;
+
+                            const leftPercent = Math.max(0, (actualStart.getTime() - minDate.getTime()) / (maxDate.getTime() - minDate.getTime()) * 100);
+                            const widthPercent = Math.max(1, (actualEnd.getTime() - actualStart.getTime()) / (maxDate.getTime() - minDate.getTime()) * 100);
+
+                            return (
+                                <div key={i} className="flex items-center gap-4 group">
+                                    <div className="w-[234px] shrink-0 truncate text-sm">
+                                        <div className="font-medium text-zinc-800 dark:text-zinc-200 truncate" title={t.task.descripcion?.title}>{t.task.descripcion?.title || "Sin título"}</div>
+                                        <div className="text-xs text-zinc-500 truncate" title={`${t.equipmentName} - ${t.labCode}`}>{t.equipmentName} - {t.labCode}</div>
+                                    </div>
+                                    <div className="flex-1 relative h-8 bg-zinc-50 dark:bg-zinc-800/50 rounded border border-zinc-100 dark:border-zinc-800">
+                                        <div 
+                                            className="absolute top-1 bottom-1 bg-blue-500/80 hover:bg-blue-500 rounded-sm shadow-sm transition-colors cursor-pointer"
+                                            style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
+                                            title={`${t.task.descripcion?.title}\nInicio: ${actualStart.toLocaleDateString()}\nFin: ${actualEnd.toLocaleDateString()}`}
+                                        />
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+        </Card>
+    );
+};
+
+// --- CALENDAR VIEW COMPONENT ---
+const CalendarView: React.FC<{ tasks: FlatTask[] }> = ({ tasks }) => {
+    const [currentDate, setCurrentDate] = useState(new Date());
+
+    const scheduledTasks = tasks.filter(t => t.task.fechaInicio || t.task.fechaFin);
+
+    const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+    const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const daysInMonth = getDaysInMonth(year, month);
+    const firstDay = getFirstDayOfMonth(year, month);
+
+    const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
+    const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+
+    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+    const blanks = Array.from({ length: firstDay === 0 ? 6 : firstDay - 1 }, (_, i) => i); // Adjust for Monday start (optional, currently Sunday start)
+
+    const getTasksForDay = (day: number) => {
+        const date = new Date(year, month, day);
+        date.setHours(0, 0, 0, 0);
+        
+        return scheduledTasks.filter(t => {
+            const start = t.task.fechaInicio ? new Date(t.task.fechaInicio) : null;
+            const end = t.task.fechaFin ? new Date(t.task.fechaFin) : null;
+            
+            if (start) start.setHours(0, 0, 0, 0);
+            if (end) end.setHours(23, 59, 59, 999);
+
+            if (start && end) return date >= start && date <= end;
+            if (start) return date.getTime() === start.getTime();
+            if (end) return date.getTime() === end.getTime();
+            return false;
+        });
+    };
+
+    return (
+        <Card>
+            <CardHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800/50">
+                <div className="flex justify-between items-center">
+                    <CardTitle className="text-lg flex items-center gap-2 text-zinc-700 dark:text-zinc-200">
+                        <CalendarIcon size={18} className="text-blue-500" />
+                        Calendario de Mantenimiento
+                    </CardTitle>
+                    <div className="flex items-center gap-4">
+                        <Button variant="ghost" size="icon-sm" onClick={prevMonth}><ChevronLeft size={16} /></Button>
+                        <span className="font-medium text-sm w-32 text-center">
+                            {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' }).replace(/^\w/, c => c.toUpperCase())}
+                        </span>
+                        <Button variant="ghost" size="icon-sm" onClick={nextMonth}><ChevronRight size={16} /></Button>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="p-4">
+                <div className="grid grid-cols-7 gap-1 mb-2">
+                    {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(d => (
+                        <div key={d} className="text-center text-xs font-semibold text-zinc-500 py-1">{d}</div>
+                    ))}
+                </div>
+                <div className="grid grid-cols-7 gap-1">
+                    {blanks.map(b => <div key={`blank-${b}`} className="min-h-[100px] bg-zinc-50/50 dark:bg-zinc-900/50 rounded-md border border-transparent" />)}
+                    {days.map(day => {
+                        const dayTasks = getTasksForDay(day);
+                        const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
+                        
+                        return (
+                            <div key={day} className={`min-h-[100px] p-1 rounded-md border ${isToday ? 'border-blue-500 bg-blue-50/30 dark:bg-blue-900/10' : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900'}`}>
+                                <div className={`text-right text-xs font-medium mb-1 ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-500'}`}>{day}</div>
+                                <div className="space-y-1 overflow-y-auto max-h-[80px] no-scrollbar">
+                                    {dayTasks.map((t, i) => (
+                                        <div key={i} className="text-[10px] leading-tight p-1 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 truncate" title={`${t.task.descripcion?.title}\n${t.equipmentName}`}>
+                                            {t.task.descripcion?.title || "Tarea"}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </CardContent>
+        </Card>
     );
 };
