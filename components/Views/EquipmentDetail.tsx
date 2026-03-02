@@ -5,7 +5,7 @@ import { Input } from '../ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
 import { Modal } from '../ui/Modal';
 import { ImageViewer } from '../ui/ImageViewer';
-import { ArrowLeft, Plus, Trash2, Save, Wrench, ClipboardList, Box, History, FileText, Copy, Camera, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, X, ExternalLink, ChevronUp, ChevronDown, ListFilter, Share2, Check, FlaskConical } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Save, Wrench, ClipboardList, Box, History, FileText, Copy, Camera, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, X, ExternalLink, ChevronUp, ChevronDown, ListFilter, Share2, Check, FlaskConical, Settings2 } from 'lucide-react';
 
 interface EquipmentDetailProps {
     equipment: Equipo;
@@ -692,6 +692,19 @@ const ProceduresTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
 };
 
 // --- 3. LIFE SHEETS (INVENTORY) TAB ---
+const INVENTORY_COLUMNS = [
+    { id: 'codigo', label: 'Código Inventario' },
+    { id: 'patrimonial', label: 'Código Patrimonial' },
+    { id: 'serie', label: 'N° de serie' },
+    { id: 'ubicacion', label: 'Ubicación Física' },
+    { id: 'fecha', label: 'Fecha Adquisición' },
+    { id: 'anio', label: 'Año Fabricación' },
+    { id: 'modo', label: 'Modo Adquisición' },
+    { id: 'estadoCons', label: 'Estado de conservación' },
+    { id: 'estadoUso', label: 'Estado de uso' },
+    { id: 'mantenimientos', label: 'Mantenimientos' }
+];
+
 const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormData: React.Dispatch<React.SetStateAction<Equipo>> }) => {
     const [selectedUnitIndex, setSelectedUnitIndex] = useState<number | null>(null);
 
@@ -708,10 +721,18 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
         code: "",
         location: "",
         date: "",
-        maint: ""
+        maint: "",
+        patrimonial: "",
+        serie: "",
+        anio: "",
+        modo: "",
+        estadoCons: "",
+        estadoUso: ""
     });
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
     const [isEditingTable, setIsEditingTable] = useState(false);
+    const [visibleColumns, setVisibleColumns] = useState<string[]>(['codigo', 'ubicacion', 'fecha', 'mantenimientos']);
+    const [showColumnSelector, setShowColumnSelector] = useState(false);
 
     const getProcessedUnits = () => {
         let units = (formData.HojasDeVidaEquipos || []).map((u, i) => ({ ...u, originalIndex: i }));
@@ -858,7 +879,39 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
             <CardHeader>
                 <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
                     <CardTitle>Inventario de Unidades</CardTitle>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                        <div className="relative">
+                            <Button variant="secondary" onClick={() => setShowColumnSelector(!showColumnSelector)}>
+                                <Settings2 size={16} className="mr-2" /> Columnas
+                            </Button>
+                            {showColumnSelector && (
+                                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl z-50 p-2 animate-in fade-in zoom-in duration-150">
+                                    <div className="flex justify-between items-center px-2 py-1 mb-1 border-b border-zinc-100 dark:border-zinc-700">
+                                        <span className="text-[10px] font-bold text-zinc-400 uppercase">Seleccionar Columnas</span>
+                                        <button onClick={() => setShowColumnSelector(false)}><X size={12} /></button>
+                                    </div>
+                                    <div className="max-h-64 overflow-y-auto">
+                                        {INVENTORY_COLUMNS.map(col => (
+                                            <label key={col.id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-700 rounded cursor-pointer transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={visibleColumns.includes(col.id)}
+                                                    onChange={() => {
+                                                        setVisibleColumns(prev =>
+                                                            prev.includes(col.id)
+                                                                ? prev.filter(c => c !== col.id)
+                                                                : [...prev, col.id]
+                                                        );
+                                                    }}
+                                                    className="rounded text-blue-600"
+                                                />
+                                                <span className="text-xs text-zinc-700 dark:text-zinc-300">{col.label}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                         <Button variant={isEditingTable ? "primary" : "secondary"} onClick={() => setIsEditingTable(!isEditingTable)}>
                             {isEditingTable ? "Desactivar Edición" : "Activar Edición"}
                         </Button>
@@ -872,78 +925,248 @@ const LifeSheetsTab = ({ formData, setFormData }: { formData: Equipo, setFormDat
                         <thead className="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 border-b border-zinc-200 dark:border-zinc-700">
                             {/* Headers */}
                             <tr>
-                                <th className="px-6 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('code')}>
-                                    <div className="flex items-center gap-2">Código {renderSortIcon('code')}</div>
-                                </th>
-                                <th className="px-6 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('location')}>
-                                    <div className="flex items-center gap-2">Ubicación {renderSortIcon('location')}</div>
-                                </th>
-                                <th className="px-6 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('date')}>
-                                    <div className="flex items-center gap-2">Adquisición {renderSortIcon('date')}</div>
-                                </th>
-                                <th className="px-6 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('maint')}>
-                                    <div className="flex items-center gap-2">Mantenimientos {renderSortIcon('maint')}</div>
-                                </th>
+                                {visibleColumns.includes('codigo') && (
+                                    <th className="px-6 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('code')}>
+                                        <div className="flex items-center gap-2">Código Inventario {renderSortIcon('code')}</div>
+                                    </th>
+                                )}
+                                {visibleColumns.includes('patrimonial') && (
+                                    <th className="px-6 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('patrimonial')}>
+                                        <div className="flex items-center gap-2">Código Patrimonial {renderSortIcon('patrimonial')}</div>
+                                    </th>
+                                )}
+                                {visibleColumns.includes('serie') && (
+                                    <th className="px-6 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('serie')}>
+                                        <div className="flex items-center gap-2">N° Serie {renderSortIcon('serie')}</div>
+                                    </th>
+                                )}
+                                {visibleColumns.includes('ubicacion') && (
+                                    <th className="px-6 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('location')}>
+                                        <div className="flex items-center gap-2">Ubicación {renderSortIcon('location')}</div>
+                                    </th>
+                                )}
+                                {visibleColumns.includes('fecha') && (
+                                    <th className="px-6 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('date')}>
+                                        <div className="flex items-center gap-2">Adquisición {renderSortIcon('date')}</div>
+                                    </th>
+                                )}
+                                {visibleColumns.includes('anio') && (
+                                    <th className="px-6 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('anio')}>
+                                        <div className="flex items-center gap-2">Año Fab. {renderSortIcon('anio')}</div>
+                                    </th>
+                                )}
+                                {visibleColumns.includes('modo') && (
+                                    <th className="px-6 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('modo')}>
+                                        <div className="flex items-center gap-2">Modo Adq. {renderSortIcon('modo')}</div>
+                                    </th>
+                                )}
+                                {visibleColumns.includes('estadoCons') && (
+                                    <th className="px-6 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('estadoCons')}>
+                                        <div className="flex items-center gap-2">Est. Conservación {renderSortIcon('estadoCons')}</div>
+                                    </th>
+                                )}
+                                {visibleColumns.includes('estadoUso') && (
+                                    <th className="px-6 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('estadoUso')}>
+                                        <div className="flex items-center gap-2">Est. Uso {renderSortIcon('estadoUso')}</div>
+                                    </th>
+                                )}
+                                {visibleColumns.includes('mantenimientos') && (
+                                    <th className="px-6 py-3 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors" onClick={() => requestSort('maint')}>
+                                        <div className="flex items-center gap-2">Mantenimientos {renderSortIcon('maint')}</div>
+                                    </th>
+                                )}
                                 <th className="px-6 py-3 text-right">Acciones</th>
                             </tr>
                             {/* Filters */}
                             <tr className="bg-zinc-50 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
-                                <th className="px-4 py-2">
-                                    <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Filtro código..." value={filters.code} onChange={e => setFilters({ ...filters, code: e.target.value })} />
-                                </th>
-                                <th className="px-4 py-2">
-                                    <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Filtro ubicación..." value={filters.location} onChange={e => setFilters({ ...filters, location: e.target.value })} />
-                                </th>
-                                <th className="px-4 py-2">
-                                    <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Filtro fecha..." value={filters.date} onChange={e => setFilters({ ...filters, date: e.target.value })} />
-                                </th>
-                                <th className="px-4 py-2">
-                                    <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="#" value={filters.maint} onChange={e => setFilters({ ...filters, maint: e.target.value })} />
-                                </th>
+                                {visibleColumns.includes('codigo') && (
+                                    <th className="px-4 py-2">
+                                        <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Filtro..." value={filters.code} onChange={e => setFilters({ ...filters, code: e.target.value })} />
+                                    </th>
+                                )}
+                                {visibleColumns.includes('patrimonial') && (
+                                    <th className="px-4 py-2">
+                                        <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Filtro..." value={filters.patrimonial} onChange={e => setFilters({ ...filters, patrimonial: e.target.value })} />
+                                    </th>
+                                )}
+                                {visibleColumns.includes('serie') && (
+                                    <th className="px-4 py-2">
+                                        <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Filtro..." value={filters.serie} onChange={e => setFilters({ ...filters, serie: e.target.value })} />
+                                    </th>
+                                )}
+                                {visibleColumns.includes('ubicacion') && (
+                                    <th className="px-4 py-2">
+                                        <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Filtro..." value={filters.location} onChange={e => setFilters({ ...filters, location: e.target.value })} />
+                                    </th>
+                                )}
+                                {visibleColumns.includes('fecha') && (
+                                    <th className="px-4 py-2">
+                                        <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Filtro..." value={filters.date} onChange={e => setFilters({ ...filters, date: e.target.value })} />
+                                    </th>
+                                )}
+                                {visibleColumns.includes('anio') && (
+                                    <th className="px-4 py-2">
+                                        <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Filtro..." value={filters.anio} onChange={e => setFilters({ ...filters, anio: e.target.value })} />
+                                    </th>
+                                )}
+                                {visibleColumns.includes('modo') && (
+                                    <th className="px-4 py-2">
+                                        <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Filtro..." value={filters.modo} onChange={e => setFilters({ ...filters, modo: e.target.value })} />
+                                    </th>
+                                )}
+                                {visibleColumns.includes('estadoCons') && (
+                                    <th className="px-4 py-2">
+                                        <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Filtro..." value={filters.estadoCons} onChange={e => setFilters({ ...filters, estadoCons: e.target.value })} />
+                                    </th>
+                                )}
+                                {visibleColumns.includes('estadoUso') && (
+                                    <th className="px-4 py-2">
+                                        <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="Filtro..." value={filters.estadoUso} onChange={e => setFilters({ ...filters, estadoUso: e.target.value })} />
+                                    </th>
+                                )}
+                                {visibleColumns.includes('mantenimientos') && (
+                                    <th className="px-4 py-2">
+                                        <input className="w-full px-2 py-1 text-xs border rounded dark:bg-zinc-900 dark:border-zinc-700" placeholder="#" value={filters.maint} onChange={e => setFilters({ ...filters, maint: e.target.value })} />
+                                    </th>
+                                )}
                                 <th className="px-4 py-2"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
                             {processedUnits.length === 0 && (
-                                <tr><td colSpan={5} className="px-6 py-8 text-center text-zinc-500">No se encontraron unidades.</td></tr>
+                                <tr><td colSpan={visibleColumns.length + 1} className="px-6 py-8 text-center text-zinc-500">No se encontraron unidades.</td></tr>
                             )}
                             {processedUnits.map((item, idx) => (
                                 <tr key={item.originalIndex} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer" onClick={() => !isEditingTable && setSelectedUnitIndex(item.originalIndex)}>
-                                    <td className="px-6 py-3 font-medium font-mono">
-                                        {isEditingTable ? (
-                                            <Input
-                                                value={item.infoEquipo?.["Codigo Inventario Equipo"] || ""}
-                                                onChange={e => handleTableEdit(item.originalIndex, "Codigo Inventario Equipo", e.target.value)}
-                                                className="h-8 text-xs font-mono"
-                                            />
-                                        ) : (
-                                            item.infoEquipo?.["Codigo Inventario Equipo"] || "Sin Código"
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-3">
-                                        {isEditingTable ? (
-                                            <Input
-                                                value={item.infoEquipo?.Ubicación || ""}
-                                                onChange={e => handleTableEdit(item.originalIndex, "Ubicación", e.target.value)}
-                                                className="h-8 text-xs"
-                                            />
-                                        ) : (
-                                            item.infoEquipo?.Ubicación || "-"
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-3">
-                                        {isEditingTable ? (
-                                            <Input
-                                                type="date"
-                                                value={item.infoEquipo?.["FECHA DE ADQUISICIÓN"] || ""}
-                                                onChange={e => handleTableEdit(item.originalIndex, "FECHA DE ADQUISICIÓN", e.target.value)}
-                                                className="h-8 text-xs"
-                                            />
-                                        ) : (
-                                            item.infoEquipo?.["FECHA DE ADQUISICIÓN"] || "-"
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-3" onClick={() => isEditingTable && setSelectedUnitIndex(item.originalIndex)}><span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-100 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors">{(item.mantenimientos || []).length} regs</span></td>
+                                    {visibleColumns.includes('codigo') && (
+                                        <td className="px-6 py-3 font-medium font-mono">
+                                            {isEditingTable ? (
+                                                <Input
+                                                    value={item.infoEquipo?.["Codigo Inventario Equipo"] || ""}
+                                                    onChange={e => handleTableEdit(item.originalIndex, "Codigo Inventario Equipo", e.target.value)}
+                                                    className="h-8 text-xs font-mono"
+                                                />
+                                            ) : (
+                                                item.infoEquipo?.["Codigo Inventario Equipo"] || "Sin Código"
+                                            )}
+                                        </td>
+                                    )}
+                                    {visibleColumns.includes('patrimonial') && (
+                                        <td className="px-6 py-3 font-medium font-mono text-xs">
+                                            {isEditingTable ? (
+                                                <Input
+                                                    value={item.infoEquipo?.["Denominacion Patrimonial"] || ""}
+                                                    onChange={e => handleTableEdit(item.originalIndex, "Denominacion Patrimonial", e.target.value)}
+                                                    className="h-8 text-xs font-mono"
+                                                />
+                                            ) : (
+                                                item.infoEquipo?.["Denominacion Patrimonial"] || "-"
+                                            )}
+                                        </td>
+                                    )}
+                                    {visibleColumns.includes('serie') && (
+                                        <td className="px-6 py-3 text-xs">
+                                            {isEditingTable ? (
+                                                <Input
+                                                    value={item.infoEquipo?.["N° de serie"] || ""}
+                                                    onChange={e => handleTableEdit(item.originalIndex, "N° de serie", e.target.value)}
+                                                    className="h-8 text-xs"
+                                                />
+                                            ) : (
+                                                item.infoEquipo?.["N° de serie"] || "-"
+                                            )}
+                                        </td>
+                                    )}
+                                    {visibleColumns.includes('ubicacion') && (
+                                        <td className="px-6 py-3">
+                                            {isEditingTable ? (
+                                                <Input
+                                                    value={item.infoEquipo?.Ubicación || ""}
+                                                    onChange={e => handleTableEdit(item.originalIndex, "Ubicación", e.target.value)}
+                                                    className="h-8 text-xs"
+                                                />
+                                            ) : (
+                                                item.infoEquipo?.Ubicación || "-"
+                                            )}
+                                        </td>
+                                    )}
+                                    {visibleColumns.includes('fecha') && (
+                                        <td className="px-6 py-3">
+                                            {isEditingTable ? (
+                                                <Input
+                                                    type="date"
+                                                    value={item.infoEquipo?.["FECHA DE ADQUISICIÓN"] || ""}
+                                                    onChange={e => handleTableEdit(item.originalIndex, "FECHA DE ADQUISICIÓN", e.target.value)}
+                                                    className="h-8 text-xs"
+                                                />
+                                            ) : (
+                                                item.infoEquipo?.["FECHA DE ADQUISICIÓN"] || "-"
+                                            )}
+                                        </td>
+                                    )}
+                                    {visibleColumns.includes('anio') && (
+                                        <td className="px-6 py-3 text-xs">
+                                            {isEditingTable ? (
+                                                <Input
+                                                    value={item.infoEquipo?.["Año Fabricación"] || ""}
+                                                    onChange={e => handleTableEdit(item.originalIndex, "Año Fabricación", e.target.value)}
+                                                    className="h-8 text-xs"
+                                                />
+                                            ) : (
+                                                item.infoEquipo?.["Año Fabricación"] || "-"
+                                            )}
+                                        </td>
+                                    )}
+                                    {visibleColumns.includes('modo') && (
+                                        <td className="px-6 py-3 text-xs">
+                                            {isEditingTable ? (
+                                                <Input
+                                                    value={item.infoEquipo?.["MODO DE ADQUISICIÓN"] || ""}
+                                                    onChange={e => handleTableEdit(item.originalIndex, "MODO DE ADQUISICIÓN", e.target.value)}
+                                                    className="h-8 text-xs"
+                                                />
+                                            ) : (
+                                                item.infoEquipo?.["MODO DE ADQUISICIÓN"] || "-"
+                                            )}
+                                        </td>
+                                    )}
+                                    {visibleColumns.includes('estadoCons') && (
+                                        <td className="px-6 py-3 text-xs">
+                                            {isEditingTable ? (
+                                                <select
+                                                    className="w-full h-8 px-2 text-xs border border-zinc-300 dark:border-zinc-700 rounded-md bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    value={item.infoEquipo?.["Estado de conservación"] || ""}
+                                                    onChange={e => handleTableEdit(item.originalIndex, "Estado de conservación", e.target.value)}
+                                                >
+                                                    <option value="">Seleccionar...</option>
+                                                    <option value="Nuevo">Nuevo (N)</option>
+                                                    <option value="Bueno">Bueno (B)</option>
+                                                    <option value="Regular">Regular (R)</option>
+                                                    <option value="Malo">Malo (M)</option>
+                                                    <option value="RAEE">RAEE (X)</option>
+                                                    <option value="Chatarra">Chatarra (Y)</option>
+                                                </select>
+                                            ) : (
+                                                item.infoEquipo?.["Estado de conservación"] || "-"
+                                            )}
+                                        </td>
+                                    )}
+                                    {visibleColumns.includes('estadoUso') && (
+                                        <td className="px-6 py-3 text-xs">
+                                            {isEditingTable ? (
+                                                <Input
+                                                    value={item.infoEquipo?.["Estado de uso"] || ""}
+                                                    onChange={e => handleTableEdit(item.originalIndex, "Estado de uso", e.target.value)}
+                                                    className="h-8 text-xs"
+                                                />
+                                            ) : (
+                                                item.infoEquipo?.["Estado de uso"] || "-"
+                                            )}
+                                        </td>
+                                    )}
+                                    {visibleColumns.includes('mantenimientos') && (
+                                        <td className="px-6 py-3" onClick={() => isEditingTable && setSelectedUnitIndex(item.originalIndex)}><span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-100 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors">{(item.mantenimientos || []).length} regs</span></td>
+                                    )}
                                     <td className="px-6 py-3 text-right">
                                         <div className="flex justify-end items-center gap-1">
                                             {!isReorderDisabled && (
