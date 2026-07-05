@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UniversityData, ThemeMode, ViewType, Lab, Equipo } from './types';
+import { UniversityData, ThemeMode, ViewType, Lab, Equipo, normalizeData } from './types';
 import { DEFAULT_DATA } from './constants';
 import { MenuBar } from './components/Layout/MenuBar';
 import { Dashboard } from './components/Views/Dashboard';
@@ -57,7 +57,7 @@ const App: React.FC = () => {
 
         if (savedData) {
             try {
-                setData(JSON.parse(savedData));
+                setData(normalizeData(JSON.parse(savedData)));
             } catch (e) {
                 console.error("Failed to parse saved data");
             }
@@ -154,7 +154,7 @@ const App: React.FC = () => {
                 try {
                     const json = JSON.parse(e.target?.result as string);
                     // Basic validation could go here
-                    setData(json);
+                    setData(normalizeData(json));
                     console.log("Imported successfully");
                 } catch (error) {
                     console.error("Error parsing JSON", error);

@@ -40,8 +40,22 @@ export const GlobalPersonnelList: React.FC<GlobalPersonnelListProps> = ({ data }
     };
 
     // 1. Add Authorities from Root
-    addPerson(data["DIRECTOR DEL PROGRAMA DE ESTUDIOS"], "", "Director Programa de Estudios");
-    addPerson(data["DIRECTOR DEL DEPARTAMENTO ACADÉMICO"], "", "Director Departamento Académico");
+    const progDirs = data["DIRECTOR DEL PROGRAMA DE ESTUDIOS"];
+    if (Array.isArray(progDirs)) {
+        progDirs.forEach(dir => addPerson(dir.Nombre || dir.NOMBRE, dir["NUMERO DE CONTACTO"], "Director Programa de Estudios"));
+    } else if (typeof progDirs === 'string') {
+        addPerson(progDirs, "", "Director Programa de Estudios");
+    }
+
+    const dept = data["DEPARTAMENTO ACADÉMICO"];
+    if (dept && typeof dept === 'object') {
+        const deptDirs = dept.Director;
+        if (Array.isArray(deptDirs)) {
+            deptDirs.forEach(dir => addPerson(dir.Nombre || dir.NOMBRE, dir["NUMERO DE CONTACTO"], "Director Departamento Académico"));
+        }
+    } else if (typeof dept === 'string') {
+        addPerson(data["DIRECTOR DEL DEPARTAMENTO ACADÉMICO"], "", "Director Departamento Académico");
+    }
 
     // 2. Iterate Labs
     (data.labs || []).forEach(lab => {
